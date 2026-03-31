@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from grits.bbox import BBox, get_overlap_area
+from .bbox import BBox, get_overlap_area
     
 
 def cells_to_grid(cells, key='bbox', fill_missing=False):
