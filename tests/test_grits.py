@@ -12,12 +12,12 @@ from grits.grits import (
     grits_con,
     grits_loc,
     grits_top,
-    html_to_cells,
     hungarian_grits_con,
     hungarian_grits_top,
     iou,
     lcs_similarity,
 )
+from grits.utils import html_to_cells
 
 
 def _make_simple_cells():
