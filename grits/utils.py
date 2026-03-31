@@ -1,9 +1,10 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+from typing import Any
 
 
-def html_to_cells(table_html):
+def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
     """Parse an HTML representation of a table into a list of cells.
 
     Args:
@@ -21,7 +22,7 @@ def html_to_cells(table_html):
 
     table_cells = []
 
-    occupied_columns_by_row = defaultdict(set)
+    occupied_columns_by_row: defaultdict[int, set[int]] = defaultdict(set)
     current_row = -1
 
     # DFS traversal of the HTML tree to extract cell (td/th) elements
@@ -52,7 +53,7 @@ def html_to_cells(table_html):
             for row_num in row_nums:
                 occupied_columns_by_row[row_num].update(column_nums)
 
-            cell_dict = dict()
+            cell_dict: dict[str, Any] = {}
             cell_dict['row_nums'] = row_nums
             cell_dict['column_nums'] = column_nums
             cell_dict['is_column_header'] = current.tag == 'th' or in_header

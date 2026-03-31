@@ -1,7 +1,7 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 import itertools
 from difflib import SequenceMatcher
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -9,7 +9,7 @@ from scipy.optimize import linear_sum_assignment
 from .bbox import BBox, get_overlap_area
     
 
-def cells_to_grid(cells, key='bbox', fill_missing=False):
+def cells_to_grid(cells: list[dict[str, Any]], key: str = 'bbox', fill_missing: bool = False) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
@@ -45,7 +45,7 @@ def cells_to_grid(cells, key='bbox', fill_missing=False):
     return cell_grid
 
 
-def cells_to_relspan_grid(cells, fill_missing=False):
+def cells_to_relspan_grid(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
     """Convert from a list of cells to the matrix of grid cell features used for computing GriTS_Top.
 
     Args:
@@ -219,6 +219,7 @@ def align_1d(
             scores[seq1_idx, seq2_idx] = max_score
 
             if return_alignment:
+                assert pointers is not None
                 if diag_score == max_score:
                     pointers[seq1_idx, seq2_idx] = 0
                 elif skip_seq1_score == max_score:
@@ -231,6 +232,7 @@ def align_1d(
     if not return_alignment:
         return score
 
+    assert pointers is not None
     # Traceback to get aligned sequences
     sequence1_indices, sequence2_indices = traceback(pointers)
 
@@ -267,6 +269,7 @@ def align_2d_outer(
 
     # Initialize dynamic programming tables
     scores, pointers = initialize_DP(true_shape[0], pred_shape[0])
+    assert pointers is not None
 
     for true_row_idx in range(1, true_shape[0] + 1):
         for pred_row_idx in range(1, pred_shape[0] + 1):
@@ -320,7 +323,7 @@ def _get_n_cols(grid: list[list[object]]) -> int:
 
 def factored_2dmss(
     true_cell_grid: np.ndarray, pred_cell_grid: np.ndarray, reward_function: Callable
-) -> tuple[float, float, float, float]:
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Factored 2D-MSS: Factored two-dimensional most-similar substructures
 
     This is a polynomial-time heuristic to computing the 2D-MSS of two matrices,
@@ -420,7 +423,7 @@ def factored_2dmss(
     return true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores
 
 
-def lcs_similarity(string1, string2):
+def lcs_similarity(string1: str, string2: str) -> float:
     """Compute similarity between two strings using the longest common subsequence (LCS).
 
     Args:
@@ -485,7 +488,7 @@ def _convert_grid_elements_to_bbox_and_area(grid: list[list]) -> list[list[tuple
 
 def grits_top(
     true_relative_span_grid: list[list[list[int]]], pred_relative_span_grid: list[list[list[int]]]
-) -> tuple[float, float, float, float]:
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS_Top given two matrices of cell relative spans.
 
     For the cell at grid location (i,j), let a(i,j) be its rowspan,
@@ -514,7 +517,7 @@ def grits_top(
 
 def grits_loc(
     true_bbox_grid: list[list[list[int | float]]], pred_bbox_grid: list[list[list[int | float]]]
-) -> tuple[float, float, float, float]:
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS_Loc given two matrices of cell bounding boxes.
 
     This calculates the spatial location similarity.
@@ -536,7 +539,7 @@ def grits_loc(
 
 def grits_con(
     true_text_grid: list[list[str]], pred_text_grid: list[list[str]]
-) -> tuple[float, float, float, float]:
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS_Con given two matrices of cell text strings.
 
     Args:
@@ -553,7 +556,7 @@ def grits_con(
     )
 
 
-def _hungarian_grits(true_grids, pred_grids, grits_function):
+def _hungarian_grits(true_grids: list, pred_grids: list, grits_function: Callable) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Uses the Hungarian algorithm to find the best matching between true and predicted grids,
@@ -598,7 +601,7 @@ def _hungarian_grits(true_grids, pred_grids, grits_function):
     return true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores
 
 
-def hungarian_grits_top(true_grids_top, pred_grids_top):
+def hungarian_grits_top(true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS_Top metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -612,7 +615,7 @@ def hungarian_grits_top(true_grids_top, pred_grids_top):
     return _hungarian_grits(true_grids_top, pred_grids_top, grits_top)
 
 
-def hungarian_grits_con(true_grids_con, pred_grids_con):
+def hungarian_grits_con(true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS_Con metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -629,7 +632,7 @@ def hungarian_grits_con(true_grids_con, pred_grids_con):
 class GritsEvaluator:
     """Accumulates results from multiple grits calls and computes aggregate F1."""
 
-    _METRIC_FUNCTIONS = {
+    _METRIC_FUNCTIONS: dict[str, Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]]] = {
         "con": hungarian_grits_con,
         "top": hungarian_grits_top,
     }
@@ -637,12 +640,12 @@ class GritsEvaluator:
     def __init__(self, metric: str = "con"):
         if metric not in self._METRIC_FUNCTIONS:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
-        self._grits_function = self._METRIC_FUNCTIONS[metric]
+        self._grits_function: Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]] = self._METRIC_FUNCTIONS[metric]
         self.true_positive_scores: list[float] = []
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
 
-    def add(self, true_grids, pred_grids) -> None:
+    def add(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
         """Call the configured grits function on a pair of grids and store per-call results."""
         if isinstance(true_grids, np.ndarray):
             true_grids = [true_grids]
