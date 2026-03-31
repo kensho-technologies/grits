@@ -1,5 +1,5 @@
 # Copyright 2025-present Kensho Technologies, LLC.
-from grits.bbox import (
+from .bbox import (
     BBox,
     BBoxProtocol,
     get_horizontal_overlap,
@@ -8,7 +8,7 @@ from grits.bbox import (
     is_horizontal_overlap,
     is_vertical_overlap,
 )
-from grits.grits import (
+from .grits import (
     GritsEvaluator,
     cells_to_grid,
     cells_to_relspan_grid,
@@ -16,12 +16,12 @@ from grits.grits import (
     grits_con,
     grits_loc,
     grits_top,
-    html_to_cells,
     hungarian_grits_con,
     hungarian_grits_top,
     iou,
     lcs_similarity,
 )
+from .utils import html_to_cells
 
 __all__ = [
     # bbox types and utilities
