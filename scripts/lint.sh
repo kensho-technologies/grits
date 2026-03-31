@@ -10,14 +10,14 @@ while getopts ":f" opt; do
   esac
 done
 
-python -m mypy --config-file pyproject.toml <your module name>
+python -m mypy --config-file pyproject.toml grits
 
 if [ "$fix" = "--fix" ]; then
   # The ruff linters (check) and formatters (format) are separate.
   # See https://docs.astral.sh/ruff/formatter/#sorting-imports
-  python -m ruff --config pyproject.toml check <your module name> --fix
-  python -m ruff --config pyproject.toml format <your module name>
+  python -m ruff --config pyproject.toml check grits --fix
+  python -m ruff --config pyproject.toml format grits
 else
-  python -m ruff --config pyproject.toml check <your module name>
-  python -m ruff --config pyproject.toml format <your module name> --check
+  python -m ruff --config pyproject.toml check grits
+  python -m ruff --config pyproject.toml format grits --check
 fi
