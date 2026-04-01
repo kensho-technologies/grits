@@ -2,6 +2,10 @@
 
 GriTS is a Python package for evaluating table structure recognition (TSR) and table extraction (TE) using the Grid Table Similarity (GriTS) metric.
 
+<img src="https://github.com/user-attachments/assets/2c42cbf4-9116-4370-a281-16ebaefbef92" width="80%">
+
+<img src="https://github.com/user-attachments/assets/e0a9ce10-e8aa-4d29-b5a1-ff5c9141199c" height="100">
+
 ## About
 
 The original GriTS metric was proposed in [GriTS: Grid Table Similarity Metric for Table Structure Recognition](https://arxiv.org/abs/2203.12555) for measuring the similarity between one predicted table and one ground truth table (the traditional TSR task). It treats each table as a matrix (grid) and computes a similarity between matrices (grids).
