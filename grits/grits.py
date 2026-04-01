@@ -353,9 +353,6 @@ def factored_2dmss(
     true_shape = (true_cell_grid_n_rows, true_cell_grid_n_cols)
     pred_shape = (pred_cell_grid_n_rows, pred_cell_grid_n_cols)
 
-    pred_shape[0] * pred_shape[1]
-    true_shape[0] * true_shape[1]
-
     # Early exit: if matrices are the same shape and the elementwise (identity)
     # alignment score exceeds the maximum possible score from any smaller
     # submatrix, the identity alignment is provably optimal—skip the full DP.
