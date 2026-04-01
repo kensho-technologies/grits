@@ -9,7 +9,9 @@ from scipy.optimize import linear_sum_assignment
 from .bbox import BBox, get_overlap_area
 
 
-def cells_to_grid(cells: list[dict[str, Any]], key: str = "bbox", fill_missing: bool = False) -> list[list[Any]]:
+def cells_to_grid(
+    cells: list[dict[str, Any]], key: str = "bbox", fill_missing: bool = False
+) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
@@ -28,8 +30,8 @@ def cells_to_grid(cells: list[dict[str, Any]], key: str = "bbox", fill_missing: 
     """
     if len(cells) == 0:
         return [[]]
-    num_rows = max([max(cell["row_nums"]) for cell in cells])+1
-    num_columns = max([max(cell["column_nums"]) for cell in cells])+1
+    num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
+    num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
     if fill_missing:
         # Initialize with empty strings for text or empty list for bbox
         # This handles cases where HTML tables have missing cells
@@ -45,7 +47,9 @@ def cells_to_grid(cells: list[dict[str, Any]], key: str = "bbox", fill_missing: 
     return cell_grid
 
 
-def cells_to_relspan_grid(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+def cells_to_relspan_grid(
+    cells: list[dict[str, Any]], fill_missing: bool = False
+) -> list[list[Any]]:
     """Convert from a list of cells to the matrix of grid cell features used for computing GriTS_Top.
 
     Args:
@@ -57,8 +61,8 @@ def cells_to_relspan_grid(cells: list[dict[str, Any]], fill_missing: bool = Fals
     """
     if len(cells) == 0:
         return [[]]
-    num_rows = max([max(cell["row_nums"]) for cell in cells])+1
-    num_columns = max([max(cell["column_nums"]) for cell in cells])+1
+    num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
+    num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
     if fill_missing:
         # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
         # This handles cases where HTML tables have missing cells
@@ -117,7 +121,9 @@ def compute_fscore(
     return fscore, precision, recall
 
 
-def initialize_DP(sequence1_length: int, sequence2_length: int, allocate_pointers: bool = True) -> tuple[np.ndarray, np.ndarray | None]:
+def initialize_DP(
+    sequence1_length: int, sequence2_length: int, allocate_pointers: bool = True
+) -> tuple[np.ndarray, np.ndarray | None]:
     """Initialize dynamic programming data structures for sequence alignment.
 
     Args:
@@ -202,7 +208,9 @@ def align_1d(
 
     # Only allocate pointers when traceback is needed, since this function
     # is called many times from align_2d_outer with return_alignment=False
-    scores, pointers = initialize_DP(sequence1_length, sequence2_length, allocate_pointers=return_alignment)
+    scores, pointers = initialize_DP(
+        sequence1_length, sequence2_length, allocate_pointers=return_alignment
+    )
 
     for seq1_idx in range(1, sequence1_length + 1):
         for seq2_idx in range(1, sequence2_length + 1):
@@ -360,7 +368,9 @@ def factored_2dmss(
         grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
         true_positive_score = 0.0
         for true_row, true_col in itertools.product(range(true_shape[0]), range(true_shape[1])):
-            cell_score = reward_function(true_cell_grid[true_row][true_col], pred_cell_grid[true_row][true_col])
+            cell_score = reward_function(
+                true_cell_grid[true_row][true_col], pred_cell_grid[true_row][true_col]
+            )
             grid_scores[true_row, true_col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
@@ -371,7 +381,9 @@ def factored_2dmss(
     for true_row, true_col, pred_row, pred_col in itertools.product(
         range(true_shape[0]), range(true_shape[1]), range(pred_shape[0]), range(pred_shape[1])
     ):
-        reward = reward_function(true_cell_grid[true_row][true_col], pred_cell_grid[pred_row][pred_col])
+        reward = reward_function(
+            true_cell_grid[true_row][true_col], pred_cell_grid[pred_row][pred_col]
+        )
 
         pre_computed_rewards[(true_row, true_col, pred_row, pred_col)] = reward
         transpose_rewards[(true_col, true_row, pred_col, pred_row)] = reward
@@ -387,7 +399,9 @@ def factored_2dmss(
         true_grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
         pred_grid_scores = np.zeros((pred_cell_grid_n_rows, pred_cell_grid_n_cols))
         true_positive_score = 0.0
-        for aligned_row_idx, col in itertools.product(range(len(true_row_nums)), range(true_shape[1])):
+        for aligned_row_idx, col in itertools.product(
+            range(len(true_row_nums)), range(true_shape[1])
+        ):
             true_row = true_row_nums[aligned_row_idx]
             pred_row = pred_row_nums[aligned_row_idx]
             cell_score = reward_function(
@@ -412,7 +426,8 @@ def factored_2dmss(
     for true_row_num, pred_row_num in zip(true_row_nums, pred_row_nums):
         for true_column_num, pred_column_num in zip(true_column_nums, pred_column_nums):
             grid_cell_score = pre_computed_rewards[
-                (true_row_num, true_column_num, pred_row_num, pred_column_num)]
+                (true_row_num, true_column_num, pred_row_num, pred_column_num)
+            ]
             true_grid_scores[true_row_num, true_column_num] = grid_cell_score
             pred_grid_scores[pred_row_num, pred_column_num] = grid_cell_score
             true_positive_score += grid_cell_score
@@ -438,7 +453,7 @@ def lcs_similarity(string1: str, string2: str) -> float:
 
     lcs_length = sum(block.size for block in sequence_matcher.get_matching_blocks())
 
-    lcs_similarity_score = 2*lcs_length/(len(string1)+len(string2))
+    lcs_similarity_score = 2 * lcs_length / (len(string1) + len(string2))
 
     return lcs_similarity_score
 
@@ -553,7 +568,9 @@ def grits_con(
     )
 
 
-def _hungarian_grits(true_grids: list, pred_grids: list, grits_function: Callable) -> tuple[float, float, np.ndarray, np.ndarray]:
+def _hungarian_grits(
+    true_grids: list, pred_grids: list, grits_function: Callable
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Uses the Hungarian algorithm to find the best matching between true and predicted grids,
@@ -578,7 +595,12 @@ def _hungarian_grits(true_grids: list, pred_grids: list, grits_function: Callabl
 
     for true_idx, true_grid in enumerate(true_grids):
         for pred_idx, pred_grid in enumerate(pred_grids):
-            true_positive_cell_score, true_positive_cell_score_upper_bound, true_grid_scores, pred_grid_scores = grits_function(true_grid, pred_grid)
+            (
+                true_positive_cell_score,
+                true_positive_cell_score_upper_bound,
+                true_grid_scores,
+                pred_grid_scores,
+            ) = grits_function(true_grid, pred_grid)
 
             true_grid_scores_matrix[true_idx, pred_idx] = true_grid_scores
             pred_grid_scores_matrix[true_idx, pred_idx] = pred_grid_scores
@@ -590,7 +612,9 @@ def _hungarian_grits(true_grids: list, pred_grids: list, grits_function: Callabl
     true_grid_scores = true_grid_scores_matrix[matched_true_indices, matched_pred_indices]
     pred_grid_scores = pred_grid_scores_matrix[matched_true_indices, matched_pred_indices]
     true_positive_scores_per_grid = score_matrix[matched_true_indices, matched_pred_indices]
-    true_positive_scores_upper_bound = score_upper_bound_matrix[matched_true_indices, matched_pred_indices]
+    true_positive_scores_upper_bound = score_upper_bound_matrix[
+        matched_true_indices, matched_pred_indices
+    ]
 
     true_positive_score = true_positive_scores_per_grid.sum()
     true_positive_score_upper_bound = true_positive_scores_upper_bound.sum()
@@ -598,7 +622,9 @@ def _hungarian_grits(true_grids: list, pred_grids: list, grits_function: Callabl
     return true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores
 
 
-def hungarian_grits_top(true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]) -> tuple[float, float, np.ndarray, np.ndarray]:
+def hungarian_grits_top(
+    true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS_Top metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -612,7 +638,9 @@ def hungarian_grits_top(true_grids_top: list[list[list[list[int]]]], pred_grids_
     return _hungarian_grits(true_grids_top, pred_grids_top, grits_top)
 
 
-def hungarian_grits_con(true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]) -> tuple[float, float, np.ndarray, np.ndarray]:
+def hungarian_grits_con(
+    true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS_Con metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -629,7 +657,9 @@ def hungarian_grits_con(true_grids_con: list[list[list[str]]], pred_grids_con: l
 class GritsEvaluator:
     """Accumulates results from multiple grits calls and computes aggregate F1."""
 
-    _METRIC_FUNCTIONS: dict[str, Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]]] = {
+    _METRIC_FUNCTIONS: dict[
+        str, Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]]
+    ] = {
         "con": hungarian_grits_con,
         "top": hungarian_grits_top,
     }
@@ -638,7 +668,9 @@ class GritsEvaluator:
         """Initialize the evaluator with the specified metric."""
         if metric not in self._METRIC_FUNCTIONS:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
-        self._grits_function: Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]] = self._METRIC_FUNCTIONS[metric]
+        self._grits_function: Callable[
+            [list, list], tuple[float, float, np.ndarray, np.ndarray]
+        ] = self._METRIC_FUNCTIONS[metric]
         self.true_positive_scores: list[float] = []
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
@@ -663,9 +695,7 @@ class GritsEvaluator:
         Returns:
             A tuple containing (F1-score, Precision, Recall).
         """
-        total_true_positive_score = sum(
-            self.true_positive_scores
-        )
+        total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
         total_num_positives = sum(self.num_pred_cells)
         return compute_fscore(total_true_positive_score, total_num_true, total_num_positives)
@@ -680,9 +710,9 @@ class GritsEvaluator:
         f1s = []
         recalls = []
         precisions = []
-        for true_positive_score, num_true, num_positive in zip(self.true_positive_scores,
-                                                               self.num_true_cells,
-                                                               self.num_pred_cells):
+        for true_positive_score, num_true, num_positive in zip(
+            self.true_positive_scores, self.num_true_cells, self.num_pred_cells
+        ):
             f1, recall, precision = compute_fscore(true_positive_score, num_true, num_positive)
             f1s.append(f1)
             recalls.append(recall)

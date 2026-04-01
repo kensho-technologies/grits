@@ -33,7 +33,7 @@ def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
         if current.tag == "tr":
             current_row += 1
 
-        if current.tag == "td" or current.tag =="th":
+        if current.tag == "td" or current.tag == "th":
             if "colspan" in current.attrib:
                 colspan = int(current.attrib["colspan"])
             else:
@@ -45,7 +45,11 @@ def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
             row_nums = list(range(current_row, current_row + rowspan))
             try:
                 max_occupied_column = max(occupied_columns_by_row[current_row])
-                current_column = min(set(range(max_occupied_column+2)).difference(occupied_columns_by_row[current_row]))
+                current_column = min(
+                    set(range(max_occupied_column + 2)).difference(
+                        occupied_columns_by_row[current_row]
+                    )
+                )
             except ValueError:
                 current_column = 0
             column_nums = list(range(current_column, current_column + colspan))
