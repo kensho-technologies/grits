@@ -23,6 +23,7 @@ from .grits import (
 )
 from .utils import html_to_cells
 
+
 __all__ = [
     # bbox types and utilities
     "BBox",

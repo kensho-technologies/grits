@@ -1,7 +1,7 @@
 # Copyright 2025-present Kensho Technologies, LLC.
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 from typing import Any
+import xml.etree.ElementTree as ET
 
 
 def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
@@ -16,8 +16,7 @@ def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
     """
     try:
         tree = ET.fromstring(table_html)
-    except Exception as e:
-        print(e)
+    except ET.ParseError:
         return None
 
     table_cells = []
@@ -31,10 +30,10 @@ def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
     while len(stack) > 0:
         current, in_header = stack.pop()
 
-        if current.tag == 'tr':
+        if current.tag == "tr":
             current_row += 1
 
-        if current.tag == 'td' or current.tag =='th':
+        if current.tag == "td" or current.tag =="th":
             if "colspan" in current.attrib:
                 colspan = int(current.attrib["colspan"])
             else:
@@ -47,21 +46,21 @@ def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
             try:
                 max_occupied_column = max(occupied_columns_by_row[current_row])
                 current_column = min(set(range(max_occupied_column+2)).difference(occupied_columns_by_row[current_row]))
-            except:
+            except ValueError:
                 current_column = 0
             column_nums = list(range(current_column, current_column + colspan))
             for row_num in row_nums:
                 occupied_columns_by_row[row_num].update(column_nums)
 
             cell_dict: dict[str, Any] = {}
-            cell_dict['row_nums'] = row_nums
-            cell_dict['column_nums'] = column_nums
-            cell_dict['is_column_header'] = current.tag == 'th' or in_header
-            cell_dict['cell_text'] = ' '.join(current.itertext())
+            cell_dict["row_nums"] = row_nums
+            cell_dict["column_nums"] = column_nums
+            cell_dict["is_column_header"] = current.tag == "th" or in_header
+            cell_dict["cell_text"] = " ".join(current.itertext())
             table_cells.append(cell_dict)
 
         children = list(current)
         for child in children[::-1]:
-            stack.append((child, in_header or current.tag == 'th' or current.tag == 'thead'))
+            stack.append((child, in_header or current.tag == "th" or current.tag == "thead"))
 
     return table_cells

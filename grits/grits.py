@@ -1,15 +1,15 @@
 # Copyright 2025-present Kensho Technologies, LLC.
-import itertools
 from difflib import SequenceMatcher
+import itertools
 from typing import Any, Callable
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 from .bbox import BBox, get_overlap_area
-    
 
-def cells_to_grid(cells: list[dict[str, Any]], key: str = 'bbox', fill_missing: bool = False) -> list[list[Any]]:
+
+def cells_to_grid(cells: list[dict[str, Any]], key: str = "bbox", fill_missing: bool = False) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
@@ -28,8 +28,8 @@ def cells_to_grid(cells: list[dict[str, Any]], key: str = 'bbox', fill_missing: 
     """
     if len(cells) == 0:
         return [[]]
-    num_rows = max([max(cell['row_nums']) for cell in cells])+1
-    num_columns = max([max(cell['column_nums']) for cell in cells])+1
+    num_rows = max([max(cell["row_nums"]) for cell in cells])+1
+    num_columns = max([max(cell["column_nums"]) for cell in cells])+1
     if fill_missing:
         # Initialize with empty strings for text or empty list for bbox
         # This handles cases where HTML tables have missing cells
@@ -38,8 +38,8 @@ def cells_to_grid(cells: list[dict[str, Any]], key: str = 'bbox', fill_missing: 
     else:
         cell_grid = np.zeros((num_rows, num_columns)).tolist()
     for cell in cells:
-        for row_num in cell['row_nums']:
-            for column_num in cell['column_nums']:
+        for row_num in cell["row_nums"]:
+            for column_num in cell["column_nums"]:
                 cell_grid[row_num][column_num] = cell[key]
 
     return cell_grid
@@ -57,8 +57,8 @@ def cells_to_relspan_grid(cells: list[dict[str, Any]], fill_missing: bool = Fals
     """
     if len(cells) == 0:
         return [[]]
-    num_rows = max([max(cell['row_nums']) for cell in cells])+1
-    num_columns = max([max(cell['column_nums']) for cell in cells])+1
+    num_rows = max([max(cell["row_nums"]) for cell in cells])+1
+    num_columns = max([max(cell["column_nums"]) for cell in cells])+1
     if fill_missing:
         # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
         # This handles cases where HTML tables have missing cells
@@ -66,12 +66,12 @@ def cells_to_relspan_grid(cells: list[dict[str, Any]], fill_missing: bool = Fals
     else:
         cell_grid = np.zeros((num_rows, num_columns)).tolist()
     for cell in cells:
-        min_row_num = min(cell['row_nums'])
-        min_column_num = min(cell['column_nums'])
-        max_row_num = max(cell['row_nums']) + 1
-        max_column_num = max(cell['column_nums']) + 1
-        for row_num in cell['row_nums']:
-            for column_num in cell['column_nums']:
+        min_row_num = min(cell["row_nums"])
+        min_column_num = min(cell["column_nums"])
+        max_row_num = max(cell["row_nums"]) + 1
+        max_column_num = max(cell["column_nums"]) + 1
+        for row_num in cell["row_nums"]:
+            for column_num in cell["column_nums"]:
                 cell_grid[row_num][column_num] = [
                     min_column_num - column_num,
                     min_row_num - row_num,
@@ -353,8 +353,8 @@ def factored_2dmss(
     true_shape = (true_cell_grid_n_rows, true_cell_grid_n_cols)
     pred_shape = (pred_cell_grid_n_rows, pred_cell_grid_n_cols)
 
-    num_predicted_cells = pred_shape[0] * pred_shape[1]
-    num_true_cells = true_shape[0] * true_shape[1]
+    pred_shape[0] * pred_shape[1]
+    true_shape[0] * true_shape[1]
 
     # Early exit: if matrices are the same shape and the elementwise (identity)
     # alignment score exceeds the maximum possible score from any smaller
@@ -406,7 +406,7 @@ def factored_2dmss(
     true_column_nums, pred_column_nums, col_alignment_score = align_2d_outer(
         true_shape[::-1], pred_shape[::-1], transpose_rewards
     )
-    
+
     true_positive_score_upper_bound = min(row_alignment_score, col_alignment_score)
 
     true_positive_score = 0.0
@@ -637,7 +637,8 @@ class GritsEvaluator:
         "top": hungarian_grits_top,
     }
 
-    def __init__(self, metric: str = "con"):
+    def __init__(self, metric: str = "con") -> None:
+        """Initialize the evaluator with the specified metric."""
         if metric not in self._METRIC_FUNCTIONS:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
         self._grits_function: Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]] = self._METRIC_FUNCTIONS[metric]
