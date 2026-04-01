@@ -2,4 +2,4 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 set -euxo pipefail
 
-exec python -m pytest -s --cov=<your module name> "$@"
+exec python -m pytest -s --cov=grits "$@"

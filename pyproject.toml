@@ -1,11 +1,12 @@
 [project]
-name = "<pick something>"
+name = "GriTS"
 dynamic = ["version"]
 authors = [
-  { name="Kensho McKenshin", email="someone@kensho.com" },
+  { name="Brandon Smock", email="brandon.smock@kensho.com" },
 ]
-description = "<describe this why don't you>"
+description = "GriTS metrics"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -13,6 +14,8 @@ classifiers = [
 ]
 
 dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.15,<2"
 ]
 
 [project.optional-dependencies]
@@ -25,16 +28,15 @@ dev = [
 ]
 
 [project.urls]
-source = "https://github.com/kensho-technologies/<your github repo>"
-changelog = "https://github.com/kensho-technologies/<path to your changelog>"
-documentation = "<somewhere>"
+source = "https://github.com/kensho-technologies/grits"
+changelog = "https://github.com/kensho-technologies/grits/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=61.0", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-version_file = "<your module folder>/version.py"
+version_file = "grits/version.py"
 
 [tool.ruff]
 line-length = 100
@@ -100,7 +102,7 @@ ignore = [
 combine-as-imports = true
 lines-after-imports = 2
 force-sort-within-sections = true
-known-third-party = ["wandb"]
+known-third-party = []
 
 [tool.mypy]
 ignore_missing_imports = true
