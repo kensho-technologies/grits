@@ -13,6 +13,7 @@ from grits.grits import (
     grits_loc,
     grits_top,
     hungarian_grits_con,
+    hungarian_grits_loc,
     hungarian_grits_top,
     iou,
     lcs_similarity,
@@ -286,6 +287,23 @@ class TestGritsLoc:
         assert upper_bound == 4.0
 
 
+class TestHungarianGritsLoc:
+    def test_single_grid_pair(self):
+        grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
+        tp_score, upper_bound, true_grid_scores, pred_grid_scores = hungarian_grits_loc(
+            [grid], [grid]
+        )
+        assert tp_score == 4.0
+        assert upper_bound == 4.0
+
+    def test_multiple_grids(self):
+        grid_a = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
+        grid_b = [[[50, 50, 60, 60], [60, 50, 70, 60]]]
+        tp_score, _, _, _ = hungarian_grits_loc([grid_a, grid_b], [grid_b, grid_a])
+        # Hungarian matching should pair them optimally: a-a and b-b
+        assert tp_score == 4.0
+
+
 class TestHungarianGritsCon:
     def test_single_grid_pair(self):
         true_grids = [np.array([["A", "B"], ["C", "D"]], dtype=object)]
@@ -362,6 +380,13 @@ class TestGritsEvaluator:
     def test_metric_top(self):
         evaluator = GritsEvaluator(metric="top")
         grid = np.array([[[0, 0, 1, 1], [0, 0, 1, 1]]])
+        evaluator.add(grid, grid)
+        f1, _, _ = evaluator.compute_f1()
+        assert f1 == 1.0
+
+    def test_metric_loc(self):
+        evaluator = GritsEvaluator(metric="loc")
+        grid = np.array([[[0, 0, 10, 10], [10, 0, 20, 10]]])
         evaluator.add(grid, grid)
         f1, _, _ = evaluator.compute_f1()
         assert f1 == 1.0
