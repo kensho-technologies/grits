@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 from importlib.metadata import version as get_version
 
-project = '<your project name>'
-copyright = '<this year>, Kensho Technologies'
+project = 'GriTS'
+copyright = '2025, Kensho Technologies'
 author = 'Kensho Technologies'
 
 # borrowed from here:
