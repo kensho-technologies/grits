@@ -654,6 +654,23 @@ def hungarian_grits_con(
     return _hungarian_grits(true_grids_con, pred_grids_con, grits_con)
 
 
+def hungarian_grits_loc(
+    true_grids_loc: list[list[list[list[int | float]]]],
+    pred_grids_loc: list[list[list[list[int | float]]]],
+) -> tuple[float, float, np.ndarray, np.ndarray]:
+    """Compute GriTS_Loc metrics across multiple grids using Hungarian algorithm for optimal matching.
+
+    Args:
+        true_grids_loc: List of ground truth bounding box grids
+        pred_grids_loc: List of predicted bounding box grids
+
+    Returns:
+        Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
+        true_grid_scores, pred_grid_scores).
+    """
+    return _hungarian_grits(true_grids_loc, pred_grids_loc, grits_loc)
+
+
 class GritsEvaluator:
     """Accumulates results from multiple grits calls and computes aggregate F1."""
 

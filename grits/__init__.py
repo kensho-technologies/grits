@@ -17,6 +17,7 @@ from .grits import (
     grits_loc,
     grits_top,
     hungarian_grits_con,
+    hungarian_grits_loc,
     hungarian_grits_top,
     iou,
     lcs_similarity,
@@ -42,6 +43,7 @@ __all__ = [
     "grits_loc",
     "grits_top",
     "hungarian_grits_con",
+    "hungarian_grits_loc",
     "hungarian_grits_top",
     "GritsEvaluator",
     # utilities
