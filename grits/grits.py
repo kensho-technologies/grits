@@ -693,8 +693,8 @@ class GritsEvaluator:
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
 
-    def add(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
-        """Call the configured grits function on a pair of grids and store per-call results."""
+    def eval_sample(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
+        """Evaluate a sample and store the results."""
         if isinstance(true_grids, np.ndarray):
             true_grids = [true_grids]
         if isinstance(pred_grids, np.ndarray):
@@ -707,31 +707,31 @@ class GritsEvaluator:
         self.num_true_cells.append(num_true)
         self.num_pred_cells.append(num_pred)
 
-    def compute_f1(self) -> tuple[float, float, float]:
-        """Compute the aggregate F1 score from stored per-call results.
+    def compute_grits(self) -> tuple[float, float, float]:
+        """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
 
         Returns:
-            A tuple containing (F1-score, Precision, Recall).
+            A tuple containing (GriTS F1-score, Precision, Recall).
         """
         total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
         total_num_positives = sum(self.num_pred_cells)
         return compute_fscore(total_true_positive_score, total_num_true, total_num_positives)
 
-    def compute_avg_f1(self) -> tuple[float, float, float]:
-        """Compute the (macro) average F1 score over each instance.
+    def compute_avg_grits(self) -> tuple[float, float, float]:
+        """Compute the (macro) average GriTS score. Compute the GriTS score for each instance, then average the GriTS score over all instances.
 
         Returns:
-            A tuple containing (F1-score, Precision, Recall).
+            A tuple containing (GriTS F1-score, Precision, Recall).
         """
 
         f1s = []
-        recalls = []
         precisions = []
+        recalls = []
         for true_positive_score, num_true, num_positive in zip(
             self.true_positive_scores, self.num_true_cells, self.num_pred_cells
         ):
-            f1, recall, precision = compute_fscore(true_positive_score, num_true, num_positive)
+            f1, precision, recall = compute_fscore(true_positive_score, num_true, num_positive)
             f1s.append(f1)
             recalls.append(recall)
             precisions.append(precision)
@@ -740,4 +740,4 @@ class GritsEvaluator:
         avg_recall = sum(recalls) / len(recalls)
         avg_precision = sum(precisions) / len(precisions)
 
-        return avg_f1, avg_recall, avg_precision
+        return avg_f1, avg_precision, avg_recall

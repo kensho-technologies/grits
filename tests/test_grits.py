@@ -1,6 +1,5 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 import numpy as np
-
 import pytest
 
 from grits.bbox import BBox
@@ -184,9 +183,7 @@ class TestGritsCon:
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [["A", "B"], ["C", "D"]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_con(
-            grid, grid
-        )
+        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_con(grid, grid)
         assert total_match_score == 4.0
         assert upper_bound == 4.0
         assert isinstance(true_grid_scores, np.ndarray)
@@ -210,9 +207,7 @@ class TestGritsTop:
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]], [[0, 0, 1, 1], [0, 0, 1, 1]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_top(
-            grid, grid
-        )
+        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_top(grid, grid)
         assert total_match_score == 4.0
         assert upper_bound == 4.0
         assert isinstance(true_grid_scores, np.ndarray)
@@ -280,9 +275,7 @@ class TestGritsLoc:
 
     def test_identical_grids(self):
         grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_loc(
-            grid, grid
-        )
+        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_loc(grid, grid)
         assert total_match_score == 4.0
         assert upper_bound == 4.0
 
@@ -326,14 +319,18 @@ class TestHungarianGritsCon:
 class TestHungarianGritsTop:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
-        true_grids = [np.array(
-            [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
-            dtype=object,
-        )]
-        pred_grids = [np.array(
-            [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
-            dtype=object,
-        )]
+        [
+            np.array(
+                [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
+                dtype=object,
+            )
+        ]
+        [
+            np.array(
+                [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
+                dtype=object,
+            )
+        ]
         # Use the list-of-lists form that grits_top expects
         true_grids_raw = [grid]
         pred_grids_raw = [grid]
@@ -345,8 +342,8 @@ class TestGritsEvaluator:
     def test_perfect_score(self):
         evaluator = GritsEvaluator(metric="con")
         true_grid = np.array([["A", "B"], ["C", "D"]], dtype=object)
-        evaluator.add(true_grid, true_grid)
-        f1, precision, recall = evaluator.compute_f1()
+        evaluator.eval_sample(true_grid, true_grid)
+        f1, precision, recall = evaluator.compute_grits()
         assert f1 == 1.0
         assert precision == 1.0
         assert recall == 1.0
@@ -355,40 +352,51 @@ class TestGritsEvaluator:
         evaluator = GritsEvaluator(metric="con")
         grid1 = np.array([["A", "B"]], dtype=object)
         grid2 = np.array([["X", "Y"]], dtype=object)
-        evaluator.add(grid1, grid1)
-        evaluator.add(grid2, grid2)
-        f1, precision, recall = evaluator.compute_f1()
+        evaluator.eval_sample(grid1, grid1)
+        evaluator.eval_sample(grid2, grid2)
+        f1, precision, recall = evaluator.compute_grits()
         assert f1 == 1.0
 
-    def test_compute_avg_f1(self):
+    def test_compute_avg_grits(self):
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A", "B"]], dtype=object)
-        evaluator.add(grid, grid)
-        avg_f1, avg_recall, avg_precision = evaluator.compute_avg_f1()
+        evaluator.eval_sample(grid, grid)
+        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_grits()
         assert avg_f1 == 1.0
-        assert avg_recall == 1.0
         assert avg_precision == 1.0
+        assert avg_recall == 1.0
+
+    def test_compute_avg_grits_precision_recall_order(self):
+        evaluator = GritsEvaluator(metric="con")
+        # true: 1x2, pred: 1x3 — recall should be 1.0, precision should be 2/3
+        true_grid = np.array([["A", "B"]], dtype=object)
+        pred_grid = np.array([["A", "B", "X"]], dtype=object)
+        evaluator.eval_sample(true_grid, pred_grid)
+        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_grits()
+        assert avg_precision == pytest.approx(2.0 / 3.0)
+        assert avg_recall == 1.0
+        assert avg_f1 == pytest.approx(0.8)
 
     def test_accepts_single_numpy_array(self):
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A"]], dtype=object)
         # Should not raise — add() wraps single arrays in a list
-        evaluator.add(grid, grid)
-        f1, _, _ = evaluator.compute_f1()
+        evaluator.eval_sample(grid, grid)
+        f1, _, _ = evaluator.compute_grits()
         assert f1 == 1.0
 
     def test_metric_top(self):
         evaluator = GritsEvaluator(metric="top")
         grid = np.array([[[0, 0, 1, 1], [0, 0, 1, 1]]])
-        evaluator.add(grid, grid)
-        f1, _, _ = evaluator.compute_f1()
+        evaluator.eval_sample(grid, grid)
+        f1, _, _ = evaluator.compute_grits()
         assert f1 == 1.0
 
     def test_metric_loc(self):
         evaluator = GritsEvaluator(metric="loc")
         grid = np.array([[[0, 0, 10, 10], [10, 0, 20, 10]]])
-        evaluator.add(grid, grid)
-        f1, _, _ = evaluator.compute_f1()
+        evaluator.eval_sample(grid, grid)
+        f1, _, _ = evaluator.compute_grits()
         assert f1 == 1.0
 
     def test_invalid_metric_raises(self):
