@@ -346,7 +346,7 @@ class TestGritsEvaluator:
         evaluator = GritsEvaluator(metric="con")
         true_grid = np.array([["A", "B"], ["C", "D"]], dtype=object)
         evaluator.eval_sample(true_grid, true_grid)
-        f1, precision, recall = evaluator.compute_f1()
+        f1, precision, recall = evaluator.compute_grits()
         assert f1 == 1.0
         assert precision == 1.0
         assert recall == 1.0
@@ -357,25 +357,25 @@ class TestGritsEvaluator:
         grid2 = np.array([["X", "Y"]], dtype=object)
         evaluator.eval_sample(grid1, grid1)
         evaluator.eval_sample(grid2, grid2)
-        f1, precision, recall = evaluator.compute_f1()
+        f1, precision, recall = evaluator.compute_grits()
         assert f1 == 1.0
 
-    def test_compute_avg_f1(self):
+    def test_compute_avg_grits(self):
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A", "B"]], dtype=object)
         evaluator.eval_sample(grid, grid)
-        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_f1()
+        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_grits()
         assert avg_f1 == 1.0
         assert avg_precision == 1.0
         assert avg_recall == 1.0
 
-    def test_compute_avg_f1_precision_recall_order(self):
+    def test_compute_avg_grits_precision_recall_order(self):
         evaluator = GritsEvaluator(metric="con")
         # true: 1x2, pred: 1x3 — recall should be 1.0, precision should be 2/3
         true_grid = np.array([["A", "B"]], dtype=object)
         pred_grid = np.array([["A", "B", "X"]], dtype=object)
         evaluator.eval_sample(true_grid, pred_grid)
-        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_f1()
+        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_grits()
         assert avg_precision == pytest.approx(2.0 / 3.0)
         assert avg_recall == 1.0
         assert avg_f1 == pytest.approx(0.8)
@@ -385,21 +385,21 @@ class TestGritsEvaluator:
         grid = np.array([["A"]], dtype=object)
         # Should not raise — add() wraps single arrays in a list
         evaluator.eval_sample(grid, grid)
-        f1, _, _ = evaluator.compute_f1()
+        f1, _, _ = evaluator.compute_grits()
         assert f1 == 1.0
 
     def test_metric_top(self):
         evaluator = GritsEvaluator(metric="top")
         grid = np.array([[[0, 0, 1, 1], [0, 0, 1, 1]]])
         evaluator.eval_sample(grid, grid)
-        f1, _, _ = evaluator.compute_f1()
+        f1, _, _ = evaluator.compute_grits()
         assert f1 == 1.0
 
     def test_metric_loc(self):
         evaluator = GritsEvaluator(metric="loc")
         grid = np.array([[[0, 0, 10, 10], [10, 0, 20, 10]]])
         evaluator.eval_sample(grid, grid)
-        f1, _, _ = evaluator.compute_f1()
+        f1, _, _ = evaluator.compute_grits()
         assert f1 == 1.0
 
     def test_invalid_metric_raises(self):

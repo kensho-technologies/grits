@@ -707,22 +707,22 @@ class GritsEvaluator:
         self.num_true_cells.append(num_true)
         self.num_pred_cells.append(num_pred)
 
-    def compute_f1(self) -> tuple[float, float, float]:
-        """Compute the aggregate F1 score from stored per-call results.
+    def compute_grits(self) -> tuple[float, float, float]:
+        """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
 
         Returns:
-            A tuple containing (F1-score, Precision, Recall).
+            A tuple containing (GriTS F1-score, Precision, Recall).
         """
         total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
         total_num_positives = sum(self.num_pred_cells)
         return compute_fscore(total_true_positive_score, total_num_true, total_num_positives)
 
-    def compute_avg_f1(self) -> tuple[float, float, float]:
-        """Compute the (macro) average F1 score over each instance.
+    def compute_avg_grits(self) -> tuple[float, float, float]:
+        """Compute the (macro) average GriTS score. Compute the GriTS score for each instance, then average the GriTS score over all instances.
 
         Returns:
-            A tuple containing (F1-score, Precision, Recall).
+            A tuple containing (GriTS F1-score, Precision, Recall).
         """
 
         f1s = []
