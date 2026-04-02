@@ -6,7 +6,7 @@ from grits.bbox import BBox
 from grits.grits import (
     GritsEvaluator,
     cells_to_grid,
-    cells_to_relspan_grid,
+    cells_to_grid_top,
     compute_fscore,
     grits_con,
     grits_loc,
@@ -78,11 +78,11 @@ class TestCellsToGrid:
 
 class TestCellsToRelspanGrid:
     def test_empty_cells(self):
-        assert cells_to_relspan_grid([]) == [[]]
+        assert cells_to_grid_top([]) == [[]]
 
     def test_non_spanning(self):
         cells = _make_simple_cells()
-        grid = cells_to_relspan_grid(cells)
+        grid = cells_to_grid_top(cells)
         assert grid == [
             [[0, 0, 1, 1], [0, 0, 1, 1]],
             [[0, 0, 1, 1], [0, 0, 1, 1]],
@@ -92,7 +92,7 @@ class TestCellsToRelspanGrid:
         cells = [
             {"row_nums": [0, 1], "column_nums": [0, 1], "cell_text": "big"},
         ]
-        grid = cells_to_relspan_grid(cells)
+        grid = cells_to_grid_top(cells)
         # top-left: min_col=0, min_row=0, max_col=2, max_row=2
         assert grid[0][0] == [0, 0, 2, 2]
         # top-right (col=1): min_col - 1 = -1, min_row - 0 = 0, max_col - 1 = 1, max_row - 0 = 2
@@ -105,7 +105,7 @@ class TestCellsToRelspanGrid:
             {"row_nums": [0], "column_nums": [0], "cell_text": "A"},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D"},
         ]
-        grid = cells_to_relspan_grid(cells, fill_missing=True)
+        grid = cells_to_grid_top(cells, fill_missing=True)
         assert grid[0][0] == [0, 0, 1, 1]
         assert grid[0][1] == [0, 0, 1, 1]  # fill_missing default
         assert grid[1][0] == [0, 0, 1, 1]  # fill_missing default

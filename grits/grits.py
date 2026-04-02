@@ -47,7 +47,7 @@ def cells_to_grid(
     return cell_grid
 
 
-def cells_to_relspan_grid(
+def cells_to_grid_top(
     cells: list[dict[str, Any]], fill_missing: bool = False
 ) -> list[list[Any]]:
     """Convert from a list of cells to the matrix of grid cell features used for computing GriTS_Top.
