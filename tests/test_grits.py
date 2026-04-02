@@ -1,6 +1,5 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 import numpy as np
-
 import pytest
 
 from grits.bbox import BBox
@@ -184,9 +183,7 @@ class TestGritsCon:
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [["A", "B"], ["C", "D"]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_con(
-            grid, grid
-        )
+        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_con(grid, grid)
         assert total_match_score == 4.0
         assert upper_bound == 4.0
         assert isinstance(true_grid_scores, np.ndarray)
@@ -210,9 +207,7 @@ class TestGritsTop:
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]], [[0, 0, 1, 1], [0, 0, 1, 1]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_top(
-            grid, grid
-        )
+        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_top(grid, grid)
         assert total_match_score == 4.0
         assert upper_bound == 4.0
         assert isinstance(true_grid_scores, np.ndarray)
@@ -280,9 +275,7 @@ class TestGritsLoc:
 
     def test_identical_grids(self):
         grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_loc(
-            grid, grid
-        )
+        total_match_score, upper_bound, true_grid_scores, pred_grid_scores = grits_loc(grid, grid)
         assert total_match_score == 4.0
         assert upper_bound == 4.0
 
@@ -326,14 +319,18 @@ class TestHungarianGritsCon:
 class TestHungarianGritsTop:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
-        true_grids = [np.array(
-            [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
-            dtype=object,
-        )]
-        pred_grids = [np.array(
-            [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
-            dtype=object,
-        )]
+        [
+            np.array(
+                [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
+                dtype=object,
+            )
+        ]
+        [
+            np.array(
+                [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
+                dtype=object,
+            )
+        ]
         # Use the list-of-lists form that grits_top expects
         true_grids_raw = [grid]
         pred_grids_raw = [grid]
