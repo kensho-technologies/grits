@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.1.1 (2026-04-02)
+## 0.2.0 (Unreleased)
 
-Updated project metadata for release.
+Rename core functions in GritsEvaluator for clarity and add support for GriTS-Loc.
+
+## 0.1.1 (Unreleased)
+
+Update project metadata for release.
 
 ## 0.1.0 (Unreleased)
 
