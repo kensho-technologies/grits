@@ -345,7 +345,7 @@ class TestGritsEvaluator:
     def test_perfect_score(self):
         evaluator = GritsEvaluator(metric="con")
         true_grid = np.array([["A", "B"], ["C", "D"]], dtype=object)
-        evaluator.add(true_grid, true_grid)
+        evaluator.eval_sample(true_grid, true_grid)
         f1, precision, recall = evaluator.compute_f1()
         assert f1 == 1.0
         assert precision == 1.0
@@ -355,15 +355,15 @@ class TestGritsEvaluator:
         evaluator = GritsEvaluator(metric="con")
         grid1 = np.array([["A", "B"]], dtype=object)
         grid2 = np.array([["X", "Y"]], dtype=object)
-        evaluator.add(grid1, grid1)
-        evaluator.add(grid2, grid2)
+        evaluator.eval_sample(grid1, grid1)
+        evaluator.eval_sample(grid2, grid2)
         f1, precision, recall = evaluator.compute_f1()
         assert f1 == 1.0
 
     def test_compute_avg_f1(self):
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A", "B"]], dtype=object)
-        evaluator.add(grid, grid)
+        evaluator.eval_sample(grid, grid)
         avg_f1, avg_recall, avg_precision = evaluator.compute_avg_f1()
         assert avg_f1 == 1.0
         assert avg_recall == 1.0
@@ -373,21 +373,21 @@ class TestGritsEvaluator:
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A"]], dtype=object)
         # Should not raise — add() wraps single arrays in a list
-        evaluator.add(grid, grid)
+        evaluator.eval_sample(grid, grid)
         f1, _, _ = evaluator.compute_f1()
         assert f1 == 1.0
 
     def test_metric_top(self):
         evaluator = GritsEvaluator(metric="top")
         grid = np.array([[[0, 0, 1, 1], [0, 0, 1, 1]]])
-        evaluator.add(grid, grid)
+        evaluator.eval_sample(grid, grid)
         f1, _, _ = evaluator.compute_f1()
         assert f1 == 1.0
 
     def test_metric_loc(self):
         evaluator = GritsEvaluator(metric="loc")
         grid = np.array([[[0, 0, 10, 10], [10, 0, 20, 10]]])
-        evaluator.add(grid, grid)
+        evaluator.eval_sample(grid, grid)
         f1, _, _ = evaluator.compute_f1()
         assert f1 == 1.0
 

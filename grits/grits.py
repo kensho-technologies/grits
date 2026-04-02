@@ -693,8 +693,8 @@ class GritsEvaluator:
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
 
-    def add(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
-        """Call the configured grits function on a pair of grids and store per-call results."""
+    def eval_sample(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
+        """Evaluate a sample and store the results."""
         if isinstance(true_grids, np.ndarray):
             true_grids = [true_grids]
         if isinstance(pred_grids, np.ndarray):
