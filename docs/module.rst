@@ -1,7 +1,7 @@
 <module name>
 ========
 
-.. automodule:: grits-metric
+.. automodule:: grits
    :members:
    :undoc-members:
    :inherited-members:

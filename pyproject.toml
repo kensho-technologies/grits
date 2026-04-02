@@ -1,5 +1,5 @@
 [project]
-name = "GriTS"
+name = "grits-metric"
 dynamic = ["version"]
 authors = [
   { name="Brandon Smock", email="brandon.smock@kensho.com" },
@@ -9,8 +9,15 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
 ]
 
 dependencies = [
@@ -29,6 +36,7 @@ dev = [
 
 [project.urls]
 source = "https://github.com/kensho-technologies/grits"
+documentation = "https://github.com/kensho-technologies/grits#readme"
 changelog = "https://github.com/kensho-technologies/grits/blob/main/CHANGELOG.md"
 
 [build-system]

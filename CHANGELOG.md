@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.1.1 (2026-04-02)
+
+Updated project metadata for release.
+
 ## 0.1.0 (Unreleased)
 
-Initial public release of the GriTS (Grid Table Similarity) metrics package.
+Initial migration of the GriTS (Grid Table Similarity) metrics package.
 
 ### Added
 - Core GriTS metric functions: `grits_top`, `grits_loc`, `grits_con` for comparing table topology, location, and content.
