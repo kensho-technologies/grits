@@ -616,8 +616,8 @@ def _hungarian_grits(
         matched_true_indices, matched_pred_indices
     ]
 
-    true_positive_score = true_positive_scores_per_grid.sum()
-    true_positive_score_upper_bound = true_positive_scores_upper_bound.sum()
+    true_positive_score = float(true_positive_scores_per_grid.sum())
+    true_positive_score_upper_bound = float(true_positive_scores_upper_bound.sum())
 
     return true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores
 
