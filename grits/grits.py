@@ -726,12 +726,12 @@ class GritsEvaluator:
         """
 
         f1s = []
-        recalls = []
         precisions = []
+        recalls = []
         for true_positive_score, num_true, num_positive in zip(
             self.true_positive_scores, self.num_true_cells, self.num_pred_cells
         ):
-            f1, recall, precision = compute_fscore(true_positive_score, num_true, num_positive)
+            f1, precision, recall = compute_fscore(true_positive_score, num_true, num_positive)
             f1s.append(f1)
             recalls.append(recall)
             precisions.append(precision)
@@ -740,4 +740,4 @@ class GritsEvaluator:
         avg_recall = sum(recalls) / len(recalls)
         avg_precision = sum(precisions) / len(precisions)
 
-        return avg_f1, avg_recall, avg_precision
+        return avg_f1, avg_precision, avg_recall
