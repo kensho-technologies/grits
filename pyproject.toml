@@ -37,6 +37,7 @@ dev = [
 
 [project.urls]
 source = "https://github.com/kensho-technologies/grits"
+documentation = "https://github.com/kensho-technologies/grits#readme"
 changelog = "https://github.com/kensho-technologies/grits/blob/main/CHANGELOG.md"
 
 [build-system]
