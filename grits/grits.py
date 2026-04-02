@@ -678,6 +678,7 @@ class GritsEvaluator:
         str, Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]]
     ] = {
         "con": hungarian_grits_con,
+        "loc": hungarian_grits_loc,
         "top": hungarian_grits_top,
     }
 
