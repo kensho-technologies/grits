@@ -50,7 +50,7 @@ def cells_to_grid(
 def cells_to_grid_top(
     cells: list[dict[str, Any]], fill_missing: bool = False
 ) -> list[list[Any]]:
-    """Convert from a list of cells to the matrix of grid cell features used for computing GriTS_Top.
+    """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top. Previously known as cells_to_relspan_grid().
 
     Args:
         cells: List of cell dicts with 'row_nums' and 'column_nums'.
