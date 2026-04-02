@@ -364,10 +364,21 @@ class TestGritsEvaluator:
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A", "B"]], dtype=object)
         evaluator.eval_sample(grid, grid)
-        avg_f1, avg_recall, avg_precision = evaluator.compute_avg_f1()
+        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_f1()
         assert avg_f1 == 1.0
-        assert avg_recall == 1.0
         assert avg_precision == 1.0
+        assert avg_recall == 1.0
+
+    def test_compute_avg_f1_precision_recall_order(self):
+        evaluator = GritsEvaluator(metric="con")
+        # true: 1x2, pred: 1x3 — recall should be 1.0, precision should be 2/3
+        true_grid = np.array([["A", "B"]], dtype=object)
+        pred_grid = np.array([["A", "B", "X"]], dtype=object)
+        evaluator.eval_sample(true_grid, pred_grid)
+        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_f1()
+        assert avg_precision == pytest.approx(2.0 / 3.0)
+        assert avg_recall == 1.0
+        assert avg_f1 == pytest.approx(0.8)
 
     def test_accepts_single_numpy_array(self):
         evaluator = GritsEvaluator(metric="con")
