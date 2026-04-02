@@ -1,5 +1,5 @@
 [project]
-name = "GriTS"
+name = "grits-metric"
 dynamic = ["version"]
 authors = [
   { name="Brandon Smock", email="brandon.smock@kensho.com" },
