@@ -1,7 +1,7 @@
 Index
 #####################
 
-Documentation page for <your package name> library.
+Documentation page for grits-metric library.
 
 .. toctree::
    :hidden:
