@@ -10,7 +10,8 @@ from .bbox import (
 )
 from .grits import (
     GritsEvaluator,
-    cells_to_grid,
+    cells_to_grid_con,
+    cells_to_grid_loc,
     cells_to_grid_top,
     compute_fscore,
     grits_con,
@@ -35,7 +36,8 @@ __all__ = [
     "is_horizontal_overlap",
     "is_vertical_overlap",
     # grid conversion
-    "cells_to_grid",
+    "cells_to_grid_con",
+    "cells_to_grid_loc",
     "cells_to_grid_top",
     "html_to_cells",
     # GriTS metrics

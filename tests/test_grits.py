@@ -5,7 +5,8 @@ import pytest
 from grits.bbox import BBox
 from grits.grits import (
     GritsEvaluator,
-    cells_to_grid,
+    cells_to_grid_con,
+    cells_to_grid_loc,
     cells_to_grid_top,
     compute_fscore,
     grits_con,
@@ -30,22 +31,14 @@ def _make_simple_cells():
     ]
 
 
-class TestCellsToGrid:
+class TestCellsToGridCon:
     def test_empty_cells(self):
-        assert cells_to_grid([], key="cell_text") == [[]]
+        assert cells_to_grid_con([]) == [[]]
 
     def test_simple_text_grid(self):
         cells = _make_simple_cells()
-        grid = cells_to_grid(cells, key="cell_text")
+        grid = cells_to_grid_con(cells)
         assert grid == [["A", "B"], ["C", "D"]]
-
-    def test_simple_bbox_grid(self):
-        cells = _make_simple_cells()
-        grid = cells_to_grid(cells, key="bbox")
-        assert grid == [
-            [[0, 0, 10, 10], [10, 0, 20, 10]],
-            [[0, 10, 10, 20], [10, 10, 20, 20]],
-        ]
 
     def test_spanning_cell(self):
         cells = [
@@ -53,23 +46,36 @@ class TestCellsToGrid:
             {"row_nums": [0], "column_nums": [1], "cell_text": "B", "bbox": [10, 0, 20, 10]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
         ]
-        grid = cells_to_grid(cells, key="cell_text")
+        grid = cells_to_grid_con(cells)
         assert grid == [["span", "B"], ["span", "D"]]
 
-    def test_fill_missing_text(self):
+    def test_fill_missing(self):
         cells = [
             {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 10, 10]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
         ]
-        grid = cells_to_grid(cells, key="cell_text", fill_missing=True)
+        grid = cells_to_grid_con(cells, fill_missing=True)
         assert grid == [["A", ""], ["", "D"]]
 
-    def test_fill_missing_bbox(self):
+
+class TestCellsToGridLoc:
+    def test_empty_cells(self):
+        assert cells_to_grid_loc([]) == [[]]
+
+    def test_simple_bbox_grid(self):
+        cells = _make_simple_cells()
+        grid = cells_to_grid_loc(cells)
+        assert grid == [
+            [[0, 0, 10, 10], [10, 0, 20, 10]],
+            [[0, 10, 10, 20], [10, 10, 20, 20]],
+        ]
+
+    def test_fill_missing(self):
         cells = [
             {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 10, 10]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
         ]
-        grid = cells_to_grid(cells, key="bbox", fill_missing=True)
+        grid = cells_to_grid_loc(cells, fill_missing=True)
         assert grid[0][0] == [0, 0, 10, 10]
         assert grid[0][1] == []
         assert grid[1][0] == []
