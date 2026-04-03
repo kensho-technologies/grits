@@ -325,22 +325,7 @@ class TestHungarianGritsCon:
 class TestHungarianGritsTop:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
-        [
-            np.array(
-                [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
-                dtype=object,
-            )
-        ]
-        [
-            np.array(
-                [[BBox(0, 0, 1, 1), BBox(0, 0, 1, 1)]],
-                dtype=object,
-            )
-        ]
-        # Use the list-of-lists form that grits_top expects
-        true_grids_raw = [grid]
-        pred_grids_raw = [grid]
-        tp_score, _, _, _ = hungarian_grits_top(true_grids_raw, pred_grids_raw)
+        tp_score, _, _, _ = hungarian_grits_top([grid], [grid])
         assert tp_score == 2.0
 
 
@@ -386,7 +371,7 @@ class TestGritsEvaluator:
     def test_accepts_single_numpy_array(self):
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A"]], dtype=object)
-        # Should not raise — add() wraps single arrays in a list
+        # Should not raise — eval_sample() wraps single arrays in a list
         evaluator.eval_sample(grid, grid)
         f1, _, _ = evaluator.compute_grits()
         assert f1 == 1.0

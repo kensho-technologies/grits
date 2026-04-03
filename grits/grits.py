@@ -593,7 +593,7 @@ def _hungarian_grits(
     Args:
         true_grids: List of ground truth grids
         pred_grids: List of predicted grids
-        grits_function: Scoring function to compare a pair of grids (e.g. grits_top or grits_con)
+        grits_function: Scoring function to compare a pair of grids (e.g. grits_con, grits_top, or grits_loc)
 
     Returns:
         Tuple of (true_positive_score, true_positive_score_upper_bound,
