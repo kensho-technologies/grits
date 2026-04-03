@@ -352,7 +352,7 @@ def _get_n_cols(grid: list[list[object]]) -> int:
 
 
 def factored_2dmss(
-    true_cell_grid: np.ndarray, pred_cell_grid: np.ndarray, reward_function: Callable
+    true_grid: np.ndarray, pred_grid: np.ndarray, reward_function: Callable
 ) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Factored 2D-MSS: Factored two-dimensional most-similar substructures
 
@@ -366,8 +366,8 @@ def factored_2dmss(
     A'(i, j) and B'(i, j) is greatest.
 
     Args:
-        true_cell_grid: Ground truth grid
-        pred_cell_grid: Predicted grid
+        true_grid: Ground truth grid
+        pred_grid: Predicted grid
         reward_function: Function to compute similarity between cells
 
     Returns:
@@ -375,23 +375,23 @@ def factored_2dmss(
         true_grid_scores, pred_grid_scores), where the scalar values are floats
         and the grid scores are numpy arrays.
     """
-    true_cell_grid_n_rows = len(true_cell_grid)
-    true_cell_grid_n_cols = _get_n_cols(true_cell_grid.tolist())
-    pred_cell_grid_n_rows = len(pred_cell_grid)
-    pred_cell_grid_n_cols = _get_n_cols(pred_cell_grid.tolist())
+    true_grid_n_rows = len(true_grid)
+    true_grid_n_cols = _get_n_cols(true_grid.tolist())
+    pred_grid_n_rows = len(pred_grid)
+    pred_grid_n_cols = _get_n_cols(pred_grid.tolist())
 
-    true_shape = (true_cell_grid_n_rows, true_cell_grid_n_cols)
-    pred_shape = (pred_cell_grid_n_rows, pred_cell_grid_n_cols)
+    true_shape = (true_grid_n_rows, true_grid_n_cols)
+    pred_shape = (pred_grid_n_rows, pred_grid_n_cols)
 
     # Early exit: if matrices are the same shape and the elementwise (identity)
     # alignment score exceeds the maximum possible score from any smaller
     # submatrix, the identity alignment is provably optimal—skip the full DP.
     if true_shape == pred_shape:
-        grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
+        grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
         true_positive_score = 0.0
         for true_row, true_col in itertools.product(range(true_shape[0]), range(true_shape[1])):
             cell_score = reward_function(
-                true_cell_grid[true_row][true_col], pred_cell_grid[true_row][true_col]
+                true_grid[true_row][true_col], pred_grid[true_row][true_col]
             )
             grid_scores[true_row, true_col] = cell_score
             true_positive_score += cell_score
@@ -404,7 +404,7 @@ def factored_2dmss(
         range(true_shape[0]), range(true_shape[1]), range(pred_shape[0]), range(pred_shape[1])
     ):
         reward = reward_function(
-            true_cell_grid[true_row][true_col], pred_cell_grid[pred_row][pred_col]
+            true_grid[true_row][true_col], pred_grid[pred_row][pred_col]
         )
 
         pre_computed_rewards[(true_row, true_col, pred_row, pred_col)] = reward
@@ -418,8 +418,8 @@ def factored_2dmss(
     # if the resulting match score is already greater than it could be if we removed
     # a row or column from the most similar submatrix, then stop.
     if true_shape[1] == pred_shape[1]:
-        true_grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
-        pred_grid_scores = np.zeros((pred_cell_grid_n_rows, pred_cell_grid_n_cols))
+        true_grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
+        pred_grid_scores = np.zeros((pred_grid_n_rows, pred_grid_n_cols))
         true_positive_score = 0.0
         for aligned_row_idx, col in itertools.product(
             range(len(true_row_nums)), range(true_shape[1])
@@ -427,8 +427,8 @@ def factored_2dmss(
             true_row = true_row_nums[aligned_row_idx]
             pred_row = pred_row_nums[aligned_row_idx]
             cell_score = reward_function(
-                true_cell_grid[true_row][col],
-                pred_cell_grid[pred_row][col],
+                true_grid[true_row][col],
+                pred_grid[pred_row][col],
             )
             true_grid_scores[true_row, col] = cell_score
             pred_grid_scores[pred_row, col] = cell_score
@@ -443,8 +443,8 @@ def factored_2dmss(
     true_positive_score_upper_bound = min(row_alignment_score, col_alignment_score)
 
     true_positive_score = 0.0
-    true_grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
-    pred_grid_scores = np.zeros((pred_cell_grid_n_rows, pred_cell_grid_n_cols))
+    true_grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
+    pred_grid_scores = np.zeros((pred_grid_n_rows, pred_grid_n_cols))
     for true_row_num, pred_row_num in zip(true_row_nums, pred_row_nums):
         for true_column_num, pred_column_num in zip(true_column_nums, pred_column_nums):
             grid_cell_score = pre_computed_rewards[
