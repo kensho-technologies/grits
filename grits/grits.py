@@ -71,7 +71,7 @@ def cells_to_grid_loc(cells: list[dict[str, Any]], fill_missing: bool = False) -
 
 def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
     """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
-    
+
     Note: This function was previously known as cells_to_relspan_grid().
 
     Args:
