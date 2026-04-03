@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 (Unreleased)
+
+Renaming variables and simplifying functions to make the default behavior clearer.
+
 ## 0.3.0 (Unreleased)
 
 Rename conversion functions in grits.py for consistency and clarity.

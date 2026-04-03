@@ -9,9 +9,7 @@ from scipy.optimize import linear_sum_assignment
 from .bbox import BBox, get_overlap_area
 
 
-def _cells_to_grid(
-    cells: list[dict[str, Any]], key: str, fill_missing: bool = False
-) -> list[list[Any]]:
+def _cells_to_grid(cells: list[dict[str, Any]], key: str, default_value: Any) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
@@ -19,7 +17,7 @@ def _cells_to_grid(
     Args:
         cells: List of cell dicts with 'row_nums', 'column_nums', and feature keys.
         key: The cell feature key to extract ('bbox' for GriTS_Loc, 'cell_text' for GriTS_Con).
-        fill_missing: If True, initialize missing cells with empty defaults instead of zeros.
+        default_value: Value used to initialize grid cells that are not covered by any cell dict.
 
     Returns:
         A 2D list (grid) of cell features indexed by [row][column].
@@ -28,13 +26,7 @@ def _cells_to_grid(
         return [[]]
     num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
     num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
-    if fill_missing:
-        # Initialize with empty strings for text or empty list for bbox
-        # This handles cases where HTML tables have missing cells
-        default_value = "" if key == "cell_text" else []
-        cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
-    else:
-        cell_grid = np.zeros((num_rows, num_columns)).tolist()
+    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
     for cell in cells:
         for row_num in cell["row_nums"]:
             for column_num in cell["column_nums"]:
@@ -43,38 +35,39 @@ def _cells_to_grid(
     return cell_grid
 
 
-def cells_to_grid_con(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+def cells_to_grid_con(cells: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell text, used for computing GriTS_Con.
 
     Args:
         cells: List of cell dicts with 'row_nums', 'column_nums', and 'cell_text'.
-        fill_missing: If True, initialize missing cells with empty strings instead of zeros.
 
     Returns:
         A 2D list (grid) of cell text strings indexed by [row][column].
     """
-    return _cells_to_grid(cells, key="cell_text", fill_missing=fill_missing)
+    default_value = ""
+    return _cells_to_grid(cells, key="cell_text", default_value=default_value)
 
 
-def cells_to_grid_loc(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+def cells_to_grid_loc(cells: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
 
     Args:
         cells: List of cell dicts with 'row_nums', 'column_nums', and 'bbox'.
-        fill_missing: If True, initialize missing cells with empty lists instead of zeros.
 
     Returns:
         A 2D list (grid) of bounding boxes indexed by [row][column].
     """
-    return _cells_to_grid(cells, key="bbox", fill_missing=fill_missing)
+    default_value = [0.0, 0.0, 0.0, 0.0]
+    return _cells_to_grid(cells, key="bbox", default_value=default_value)
 
 
-def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
-    """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top. Previously known as cells_to_relspan_grid().
+def cells_to_grid_top(cells: list[dict[str, Any]]) -> list[list[Any]]:
+    """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
+
+    Note: This function was previously known as cells_to_relspan_grid().
 
     Args:
         cells: List of cell dicts with 'row_nums' and 'column_nums'.
-        fill_missing: If True, initialize missing cells with [0, 0, 1, 1] instead of zeros.
 
     Returns:
         A 2D list (grid) of relative span values indexed by [row][column].
@@ -83,12 +76,12 @@ def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -
         return [[]]
     num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
     num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
-    if fill_missing:
-        # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
-        # This handles cases where HTML tables have missing cells
-        cell_grid = [[[0, 0, 1, 1] for _ in range(num_columns)] for _ in range(num_rows)]
-    else:
-        cell_grid = np.zeros((num_rows, num_columns)).tolist()
+
+    # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
+    # This handles cases where HTML tables have missing cells
+    default_value = [0, 0, 1, 1]
+    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
+
     for cell in cells:
         min_row_num = min(cell["row_nums"])
         min_column_num = min(cell["column_nums"])
@@ -141,7 +134,7 @@ def compute_fscore(
     return fscore, precision, recall
 
 
-def initialize_DP(
+def _initialize_dp(
     sequence1_length: int, sequence2_length: int, allocate_pointers: bool = True
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """Initialize dynamic programming data structures for sequence alignment.
@@ -149,7 +142,7 @@ def initialize_DP(
     Args:
         sequence1_length: Length of the first sequence.
         sequence2_length: Length of the second sequence.
-        allocate_pointers: If True, allocate and initialize the pointers matrix for traceback.
+        allocate_pointers: If True, allocate and initialize the pointers matrix for _traceback.
             If False, return None for pointers. Defaults to True.
 
     Returns:
@@ -170,7 +163,7 @@ def initialize_DP(
     return scores, pointers
 
 
-def traceback(pointers: np.ndarray) -> tuple[list[int], list[int]]:
+def _traceback(pointers: np.ndarray) -> tuple[list[int], list[int]]:
     """Dynamic programming traceback to determine the aligned indices between two sequences.
 
     Traceback convention: -1 = up, 1 = left, 0 = diag up-left
@@ -203,7 +196,7 @@ def traceback(pointers: np.ndarray) -> tuple[list[int], list[int]]:
     return aligned_sequence1_indices, aligned_sequence2_indices
 
 
-def align_1d(
+def _align_1d(
     sequence1: list[tuple[int, int]],
     sequence2: list[tuple[int, int]],
     reward_lookup: dict[tuple[int, int, int, int], float],
@@ -227,8 +220,8 @@ def align_1d(
     sequence2_length = len(sequence2)
 
     # Only allocate pointers when traceback is needed, since this function
-    # is called many times from align_2d_outer with return_alignment=False
-    scores, pointers = initialize_DP(
+    # is called many times from _align_2d_outer with return_alignment=False
+    scores, pointers = _initialize_dp(
         sequence1_length, sequence2_length, allocate_pointers=return_alignment
     )
 
@@ -262,12 +255,12 @@ def align_1d(
 
     assert pointers is not None
     # Traceback to get aligned sequences
-    sequence1_indices, sequence2_indices = traceback(pointers)
+    sequence1_indices, sequence2_indices = _traceback(pointers)
 
     return sequence1_indices, sequence2_indices, score
 
 
-def align_2d_outer(
+def _align_2d_outer(
     true_shape: tuple[int, int],
     pred_shape: tuple[int, int],
     reward_lookup: dict[tuple[int, int, int, int], float],
@@ -296,13 +289,13 @@ def align_2d_outer(
     ]
 
     # Initialize dynamic programming tables
-    scores, pointers = initialize_DP(true_shape[0], pred_shape[0])
+    scores, pointers = _initialize_dp(true_shape[0], pred_shape[0])
     assert pointers is not None
 
     for true_row_idx in range(1, true_shape[0] + 1):
         for pred_row_idx in range(1, pred_shape[0] + 1):
             # Compute alignment scores for inner sequences
-            reward = align_1d(
+            reward = _align_1d(
                 true_row_sequences[true_row_idx - 1],
                 pred_row_sequences[pred_row_idx - 1],
                 reward_lookup,
@@ -327,7 +320,7 @@ def align_2d_outer(
     score = scores[-1, -1]
 
     # Traceback to get aligned sequences
-    aligned_true_indices, aligned_pred_indices = traceback(pointers)
+    aligned_true_indices, aligned_pred_indices = _traceback(pointers)
 
     return aligned_true_indices, aligned_pred_indices, score
 
@@ -350,7 +343,7 @@ def _get_n_cols(grid: list[list[object]]) -> int:
 
 
 def factored_2dmss(
-    true_cell_grid: np.ndarray, pred_cell_grid: np.ndarray, reward_function: Callable
+    true_grid: np.ndarray, pred_grid: np.ndarray, reward_function: Callable
 ) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Factored 2D-MSS: Factored two-dimensional most-similar substructures
 
@@ -364,8 +357,8 @@ def factored_2dmss(
     A'(i, j) and B'(i, j) is greatest.
 
     Args:
-        true_cell_grid: Ground truth grid
-        pred_cell_grid: Predicted grid
+        true_grid: Ground truth grid
+        pred_grid: Predicted grid
         reward_function: Function to compute similarity between cells
 
     Returns:
@@ -373,23 +366,23 @@ def factored_2dmss(
         true_grid_scores, pred_grid_scores), where the scalar values are floats
         and the grid scores are numpy arrays.
     """
-    true_cell_grid_n_rows = len(true_cell_grid)
-    true_cell_grid_n_cols = _get_n_cols(true_cell_grid.tolist())
-    pred_cell_grid_n_rows = len(pred_cell_grid)
-    pred_cell_grid_n_cols = _get_n_cols(pred_cell_grid.tolist())
+    true_grid_n_rows = len(true_grid)
+    true_grid_n_cols = _get_n_cols(true_grid.tolist())
+    pred_grid_n_rows = len(pred_grid)
+    pred_grid_n_cols = _get_n_cols(pred_grid.tolist())
 
-    true_shape = (true_cell_grid_n_rows, true_cell_grid_n_cols)
-    pred_shape = (pred_cell_grid_n_rows, pred_cell_grid_n_cols)
+    true_shape = (true_grid_n_rows, true_grid_n_cols)
+    pred_shape = (pred_grid_n_rows, pred_grid_n_cols)
 
     # Early exit: if matrices are the same shape and the elementwise (identity)
     # alignment score exceeds the maximum possible score from any smaller
     # submatrix, the identity alignment is provably optimal—skip the full DP.
     if true_shape == pred_shape:
-        grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
+        grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
         true_positive_score = 0.0
         for true_row, true_col in itertools.product(range(true_shape[0]), range(true_shape[1])):
             cell_score = reward_function(
-                true_cell_grid[true_row][true_col], pred_cell_grid[true_row][true_col]
+                true_grid[true_row][true_col], pred_grid[true_row][true_col]
             )
             grid_scores[true_row, true_col] = cell_score
             true_positive_score += cell_score
@@ -401,14 +394,12 @@ def factored_2dmss(
     for true_row, true_col, pred_row, pred_col in itertools.product(
         range(true_shape[0]), range(true_shape[1]), range(pred_shape[0]), range(pred_shape[1])
     ):
-        reward = reward_function(
-            true_cell_grid[true_row][true_col], pred_cell_grid[pred_row][pred_col]
-        )
+        reward = reward_function(true_grid[true_row][true_col], pred_grid[pred_row][pred_col])
 
         pre_computed_rewards[(true_row, true_col, pred_row, pred_col)] = reward
         transpose_rewards[(true_col, true_row, pred_col, pred_row)] = reward
 
-    true_row_nums, pred_row_nums, row_alignment_score = align_2d_outer(
+    true_row_nums, pred_row_nums, row_alignment_score = _align_2d_outer(
         true_shape, pred_shape, pre_computed_rewards
     )
 
@@ -416,8 +407,8 @@ def factored_2dmss(
     # if the resulting match score is already greater than it could be if we removed
     # a row or column from the most similar submatrix, then stop.
     if true_shape[1] == pred_shape[1]:
-        true_grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
-        pred_grid_scores = np.zeros((pred_cell_grid_n_rows, pred_cell_grid_n_cols))
+        true_grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
+        pred_grid_scores = np.zeros((pred_grid_n_rows, pred_grid_n_cols))
         true_positive_score = 0.0
         for aligned_row_idx, col in itertools.product(
             range(len(true_row_nums)), range(true_shape[1])
@@ -425,8 +416,8 @@ def factored_2dmss(
             true_row = true_row_nums[aligned_row_idx]
             pred_row = pred_row_nums[aligned_row_idx]
             cell_score = reward_function(
-                true_cell_grid[true_row][col],
-                pred_cell_grid[pred_row][col],
+                true_grid[true_row][col],
+                pred_grid[pred_row][col],
             )
             true_grid_scores[true_row, col] = cell_score
             pred_grid_scores[pred_row, col] = cell_score
@@ -434,15 +425,15 @@ def factored_2dmss(
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
             return true_positive_score, true_positive_score, true_grid_scores, pred_grid_scores
 
-    true_column_nums, pred_column_nums, col_alignment_score = align_2d_outer(
+    true_column_nums, pred_column_nums, col_alignment_score = _align_2d_outer(
         true_shape[::-1], pred_shape[::-1], transpose_rewards
     )
 
     true_positive_score_upper_bound = min(row_alignment_score, col_alignment_score)
 
     true_positive_score = 0.0
-    true_grid_scores = np.zeros((true_cell_grid_n_rows, true_cell_grid_n_cols))
-    pred_grid_scores = np.zeros((pred_cell_grid_n_rows, pred_cell_grid_n_cols))
+    true_grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
+    pred_grid_scores = np.zeros((pred_grid_n_rows, pred_grid_n_cols))
     for true_row_num, pred_row_num in zip(true_row_nums, pred_row_nums):
         for true_column_num, pred_column_num in zip(true_column_nums, pred_column_nums):
             grid_cell_score = pre_computed_rewards[
@@ -593,16 +584,15 @@ def _hungarian_grits(
 ) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
 
-    Uses the Hungarian algorithm to find the best matching between true and predicted grids,
-    then computes aggregated GriTS metrics across all matched pairs.
+    Uses the Hungarian algorithm to find the best match between lists of true and predicted grids, and computes the true positive score for the matched pairs.
 
     Args:
         true_grids: List of ground truth grids
         pred_grids: List of predicted grids
-        grits_function: Scoring function to compare a pair of grids (e.g. grits_top or grits_con)
+        grits_function: Scoring function to compare a pair of grids (e.g. grits_con, grits_top, or grits_loc)
 
     Returns:
-        Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
+        Tuple of (true_positive_score, true_positive_score_upper_bound,
         true_grid_scores, pred_grid_scores).
     """
     num_true_grids = len(true_grids)
@@ -692,7 +682,7 @@ def hungarian_grits_loc(
 
 
 class GritsEvaluator:
-    """Accumulates results from multiple grits calls and computes aggregate F1."""
+    """Accumulates results from multiple GriTS evaluation calls and computes aggregate metrics."""
 
     _METRIC_FUNCTIONS: dict[
         str, Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]]
