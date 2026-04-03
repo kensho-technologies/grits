@@ -31,7 +31,7 @@ Requires Python >= 3.10.
 ## Quick start
 
 ```python
-from grits import grits_con, cells_to_grid
+from grits import grits_con, cells_to_grid_con
 
 # Define ground-truth and predicted tables as lists of cell dicts
 true_cells = [
@@ -47,10 +47,10 @@ pred_cells = [
     {"row_nums": [1], "column_nums": [1], "cell_text": "90"},
 ]
 
-true_grid = cells_to_grid(true_cells, key="cell_text")
-pred_grid = cells_to_grid(pred_cells, key="cell_text")
+true_grid_con = cells_to_grid_con(true_cells)
+pred_grid_con = cells_to_grid_con(pred_cells)
 
-true_grid_scores, pred_grid_scores, true_positive_score, true_positive_score_upper = grits_con(true_grid, pred_grid)
+true_positive_score, true_positive_score_upper, true_grid_scores, pred_grid_scores = grits_con(true_grid_con, pred_grid_con)
 ```
 
 ### Evaluating across multiple tables
@@ -58,27 +58,27 @@ true_grid_scores, pred_grid_scores, true_positive_score, true_positive_score_upp
 Use `GritsEvaluator` to accumulate results across a dataset and compute aggregate metrics:
 
 ```python
-from grits import GritsEvaluator, cells_to_grid
+from grits import GritsEvaluator, cells_to_grid_con
 
 evaluator = GritsEvaluator(metric="con")
 
 for true_cells, pred_cells in dataset:
-    true_grid = cells_to_grid(true_cells, key="cell_text")
-    pred_grid = cells_to_grid(pred_cells, key="cell_text")
-    evaluator.add(true_grid, pred_grid)
+    true_grid_con = cells_to_grid_con(true_cells)
+    pred_grid_con = cells_to_grid_con(pred_cells)
+    evaluator.eval_sample(true_grid_con, pred_grid_con)
 
-f1, precision, recall = evaluator.compute_f1()       # micro-averaged
-avg_f1, avg_prec, avg_rec = evaluator.compute_avg_f1()  # macro-averaged
+f1, precision, recall = evaluator.compute_grits()           # micro 
+avg_f1, avg_prec, avg_rec = evaluator.compute_avg_grits()   # macro-averaged
 ```
 
 ### Parsing HTML tables
 
 ```python
-from grits import html_to_cells, cells_to_grid, cells_to_relspan_grid
+from grits import html_to_cells, cells_to_grid_con, cells_to_grid_top
 
 cells = html_to_cells("<table><tr><td>A</td><td>B</td></tr></table>")
-text_grid = cells_to_grid(cells, key="cell_text")
-topology_grid = cells_to_relspan_grid(cells)
+grid_con = cells_to_grid_con(cells)
+grid_top = cells_to_grid_top(cells)
 ```
 
 ## Metrics
@@ -89,7 +89,7 @@ topology_grid = cells_to_relspan_grid(cells)
 | GriTS_Top | `grits_top` | Cell topology / spanning structure (using IoU of relative spans) |
 | GriTS_Loc | `grits_loc` | Cell spatial location similarity (using IoU of bounding boxes) |
 
-For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con` and `hungarian_grits_top`.
+For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con`, `hungarian_grits_top`, and `hungarian_grits_loc`.
 
 ## References
 

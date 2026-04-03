@@ -9,16 +9,12 @@ from scipy.optimize import linear_sum_assignment
 from .bbox import BBox, get_overlap_area
 
 
-def cells_to_grid(
-    cells: list[dict[str, Any]], key: str = "bbox", fill_missing: bool = False
+def _cells_to_grid(
+    cells: list[dict[str, Any]], key: str, fill_missing: bool = False
 ) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
-
-    For key, use:
-    - 'bbox' for computing GriTS_Loc
-    - 'cell_text' for computing GriTS_Con
 
     Args:
         cells: List of cell dicts with 'row_nums', 'column_nums', and feature keys.
@@ -47,10 +43,34 @@ def cells_to_grid(
     return cell_grid
 
 
-def cells_to_relspan_grid(
-    cells: list[dict[str, Any]], fill_missing: bool = False
-) -> list[list[Any]]:
-    """Convert from a list of cells to the matrix of grid cell features used for computing GriTS_Top.
+def cells_to_grid_con(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+    """Convert from a list of cells to a matrix of cell text, used for computing GriTS_Con.
+
+    Args:
+        cells: List of cell dicts with 'row_nums', 'column_nums', and 'cell_text'.
+        fill_missing: If True, initialize missing cells with empty strings instead of zeros.
+
+    Returns:
+        A 2D list (grid) of cell text strings indexed by [row][column].
+    """
+    return _cells_to_grid(cells, key="cell_text", fill_missing=fill_missing)
+
+
+def cells_to_grid_loc(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+    """Convert from a list of cells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
+
+    Args:
+        cells: List of cell dicts with 'row_nums', 'column_nums', and 'bbox'.
+        fill_missing: If True, initialize missing cells with empty lists instead of zeros.
+
+    Returns:
+        A 2D list (grid) of bounding boxes indexed by [row][column].
+    """
+    return _cells_to_grid(cells, key="bbox", fill_missing=fill_missing)
+
+
+def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+    """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top. Previously known as cells_to_relspan_grid().
 
     Args:
         cells: List of cell dicts with 'row_nums' and 'column_nums'.
