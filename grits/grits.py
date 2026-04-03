@@ -143,7 +143,7 @@ def compute_fscore(
     return fscore, precision, recall
 
 
-def initialize_DP(
+def _initialize_dp(
     sequence1_length: int, sequence2_length: int, allocate_pointers: bool = True
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """Initialize dynamic programming data structures for sequence alignment.
@@ -151,7 +151,7 @@ def initialize_DP(
     Args:
         sequence1_length: Length of the first sequence.
         sequence2_length: Length of the second sequence.
-        allocate_pointers: If True, allocate and initialize the pointers matrix for traceback.
+        allocate_pointers: If True, allocate and initialize the pointers matrix for _traceback.
             If False, return None for pointers. Defaults to True.
 
     Returns:
@@ -172,7 +172,7 @@ def initialize_DP(
     return scores, pointers
 
 
-def traceback(pointers: np.ndarray) -> tuple[list[int], list[int]]:
+def _traceback(pointers: np.ndarray) -> tuple[list[int], list[int]]:
     """Dynamic programming traceback to determine the aligned indices between two sequences.
 
     Traceback convention: -1 = up, 1 = left, 0 = diag up-left
@@ -205,7 +205,7 @@ def traceback(pointers: np.ndarray) -> tuple[list[int], list[int]]:
     return aligned_sequence1_indices, aligned_sequence2_indices
 
 
-def align_1d(
+def _align_1d(
     sequence1: list[tuple[int, int]],
     sequence2: list[tuple[int, int]],
     reward_lookup: dict[tuple[int, int, int, int], float],
@@ -229,8 +229,8 @@ def align_1d(
     sequence2_length = len(sequence2)
 
     # Only allocate pointers when traceback is needed, since this function
-    # is called many times from align_2d_outer with return_alignment=False
-    scores, pointers = initialize_DP(
+    # is called many times from _align_2d_outer with return_alignment=False
+    scores, pointers = _initialize_dp(
         sequence1_length, sequence2_length, allocate_pointers=return_alignment
     )
 
@@ -264,12 +264,12 @@ def align_1d(
 
     assert pointers is not None
     # Traceback to get aligned sequences
-    sequence1_indices, sequence2_indices = traceback(pointers)
+    sequence1_indices, sequence2_indices = _traceback(pointers)
 
     return sequence1_indices, sequence2_indices, score
 
 
-def align_2d_outer(
+def _align_2d_outer(
     true_shape: tuple[int, int],
     pred_shape: tuple[int, int],
     reward_lookup: dict[tuple[int, int, int, int], float],
@@ -298,13 +298,13 @@ def align_2d_outer(
     ]
 
     # Initialize dynamic programming tables
-    scores, pointers = initialize_DP(true_shape[0], pred_shape[0])
+    scores, pointers = _initialize_dp(true_shape[0], pred_shape[0])
     assert pointers is not None
 
     for true_row_idx in range(1, true_shape[0] + 1):
         for pred_row_idx in range(1, pred_shape[0] + 1):
             # Compute alignment scores for inner sequences
-            reward = align_1d(
+            reward = _align_1d(
                 true_row_sequences[true_row_idx - 1],
                 pred_row_sequences[pred_row_idx - 1],
                 reward_lookup,
@@ -329,7 +329,7 @@ def align_2d_outer(
     score = scores[-1, -1]
 
     # Traceback to get aligned sequences
-    aligned_true_indices, aligned_pred_indices = traceback(pointers)
+    aligned_true_indices, aligned_pred_indices = _traceback(pointers)
 
     return aligned_true_indices, aligned_pred_indices, score
 
@@ -410,7 +410,7 @@ def factored_2dmss(
         pre_computed_rewards[(true_row, true_col, pred_row, pred_col)] = reward
         transpose_rewards[(true_col, true_row, pred_col, pred_row)] = reward
 
-    true_row_nums, pred_row_nums, row_alignment_score = align_2d_outer(
+    true_row_nums, pred_row_nums, row_alignment_score = _align_2d_outer(
         true_shape, pred_shape, pre_computed_rewards
     )
 
@@ -436,7 +436,7 @@ def factored_2dmss(
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
             return true_positive_score, true_positive_score, true_grid_scores, pred_grid_scores
 
-    true_column_nums, pred_column_nums, col_alignment_score = align_2d_outer(
+    true_column_nums, pred_column_nums, col_alignment_score = _align_2d_outer(
         true_shape[::-1], pred_shape[::-1], transpose_rewards
     )
 
