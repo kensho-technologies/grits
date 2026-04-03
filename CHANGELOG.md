@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 (Unreleased)
+
+Rename conversion functions in grits.py for consistency and clarity.
+
 ## 0.2.0 (Unreleased)
 
 Rename core functions in GritsEvaluator for clarity and add support for GriTS-Loc.
