@@ -43,9 +43,7 @@ def _cells_to_grid(
     return cell_grid
 
 
-def cells_to_grid_con(
-    cells: list[dict[str, Any]], fill_missing: bool = False
-) -> list[list[Any]]:
+def cells_to_grid_con(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell text, used for computing GriTS_Con.
 
     Args:
@@ -58,9 +56,7 @@ def cells_to_grid_con(
     return _cells_to_grid(cells, key="cell_text", fill_missing=fill_missing)
 
 
-def cells_to_grid_loc(
-    cells: list[dict[str, Any]], fill_missing: bool = False
-) -> list[list[Any]]:
+def cells_to_grid_loc(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
 
     Args:
@@ -73,9 +69,7 @@ def cells_to_grid_loc(
     return _cells_to_grid(cells, key="bbox", fill_missing=fill_missing)
 
 
-def cells_to_grid_top(
-    cells: list[dict[str, Any]], fill_missing: bool = False
-) -> list[list[Any]]:
+def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
     """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top. Previously known as cells_to_relspan_grid().
 
     Args:
