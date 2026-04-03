@@ -9,9 +9,7 @@ from scipy.optimize import linear_sum_assignment
 from .bbox import BBox, get_overlap_area
 
 
-def _cells_to_grid(
-    cells: list[dict[str, Any]], key: str, default_value: Any
-) -> list[list[Any]]:
+def _cells_to_grid(cells: list[dict[str, Any]], key: str, default_value: Any) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
@@ -396,9 +394,7 @@ def factored_2dmss(
     for true_row, true_col, pred_row, pred_col in itertools.product(
         range(true_shape[0]), range(true_shape[1]), range(pred_shape[0]), range(pred_shape[1])
     ):
-        reward = reward_function(
-            true_grid[true_row][true_col], pred_grid[pred_row][pred_col]
-        )
+        reward = reward_function(true_grid[true_row][true_col], pred_grid[pred_row][pred_col])
 
         pre_computed_rewards[(true_row, true_col, pred_row, pred_col)] = reward
         transpose_rewards[(true_col, true_row, pred_col, pred_row)] = reward
