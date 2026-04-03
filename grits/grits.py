@@ -10,7 +10,7 @@ from .bbox import BBox, get_overlap_area
 
 
 def _cells_to_grid(
-    cells: list[dict[str, Any]], key: str, fill_missing: bool = False
+    cells: list[dict[str, Any]], key: str, default_value: Any
 ) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
@@ -19,7 +19,7 @@ def _cells_to_grid(
     Args:
         cells: List of cell dicts with 'row_nums', 'column_nums', and feature keys.
         key: The cell feature key to extract ('bbox' for GriTS_Loc, 'cell_text' for GriTS_Con).
-        fill_missing: If True, initialize missing cells with empty defaults instead of zeros.
+        default_value: Value used to initialize grid cells that are not covered by any cell dict.
 
     Returns:
         A 2D list (grid) of cell features indexed by [row][column].
@@ -28,13 +28,7 @@ def _cells_to_grid(
         return [[]]
     num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
     num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
-    if fill_missing:
-        # Initialize with empty strings for text or empty list for bbox
-        # This handles cases where HTML tables have missing cells
-        default_value = "" if key == "cell_text" else []
-        cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
-    else:
-        cell_grid = np.zeros((num_rows, num_columns)).tolist()
+    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
     for cell in cells:
         for row_num in cell["row_nums"]:
             for column_num in cell["column_nums"]:
@@ -43,40 +37,39 @@ def _cells_to_grid(
     return cell_grid
 
 
-def cells_to_grid_con(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+def cells_to_grid_con(cells: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell text, used for computing GriTS_Con.
 
     Args:
         cells: List of cell dicts with 'row_nums', 'column_nums', and 'cell_text'.
-        fill_missing: If True, initialize missing cells with empty strings instead of zeros.
 
     Returns:
         A 2D list (grid) of cell text strings indexed by [row][column].
     """
-    return _cells_to_grid(cells, key="cell_text", fill_missing=fill_missing)
+    default_value = ""
+    return _cells_to_grid(cells, key="cell_text", default_value=default_value)
 
 
-def cells_to_grid_loc(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+def cells_to_grid_loc(cells: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
 
     Args:
         cells: List of cell dicts with 'row_nums', 'column_nums', and 'bbox'.
-        fill_missing: If True, initialize missing cells with empty lists instead of zeros.
 
     Returns:
         A 2D list (grid) of bounding boxes indexed by [row][column].
     """
-    return _cells_to_grid(cells, key="bbox", fill_missing=fill_missing)
+    default_value = [0.0, 0.0, 0.0, 0.0]
+    return _cells_to_grid(cells, key="bbox", default_value=default_value)
 
 
-def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
+def cells_to_grid_top(cells: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
 
     Note: This function was previously known as cells_to_relspan_grid().
 
     Args:
         cells: List of cell dicts with 'row_nums' and 'column_nums'.
-        fill_missing: If True, initialize missing cells with [0, 0, 1, 1] instead of zeros.
 
     Returns:
         A 2D list (grid) of relative span values indexed by [row][column].
@@ -85,12 +78,12 @@ def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -
         return [[]]
     num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
     num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
-    if fill_missing:
-        # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
-        # This handles cases where HTML tables have missing cells
-        cell_grid = [[[0, 0, 1, 1] for _ in range(num_columns)] for _ in range(num_rows)]
-    else:
-        cell_grid = np.zeros((num_rows, num_columns)).tolist()
+
+    # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
+    # This handles cases where HTML tables have missing cells
+    default_value = [0, 0, 1, 1]
+    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
+
     for cell in cells:
         min_row_num = min(cell["row_nums"])
         min_column_num = min(cell["column_nums"])
