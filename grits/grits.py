@@ -70,7 +70,9 @@ def cells_to_grid_loc(cells: list[dict[str, Any]], fill_missing: bool = False) -
 
 
 def cells_to_grid_top(cells: list[dict[str, Any]], fill_missing: bool = False) -> list[list[Any]]:
-    """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top. Previously known as cells_to_relspan_grid().
+    """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
+    
+    Note: This function was previously known as cells_to_relspan_grid().
 
     Args:
         cells: List of cell dicts with 'row_nums' and 'column_nums'.
@@ -593,8 +595,7 @@ def _hungarian_grits(
 ) -> tuple[float, float, np.ndarray, np.ndarray]:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
 
-    Uses the Hungarian algorithm to find the best matching between true and predicted grids,
-    then computes aggregated GriTS metrics across all matched pairs.
+    Uses the Hungarian algorithm to find the best match between lists of true and predicted grids, and computes the true positive score for the matched pairs.
 
     Args:
         true_grids: List of ground truth grids
@@ -602,7 +603,7 @@ def _hungarian_grits(
         grits_function: Scoring function to compare a pair of grids (e.g. grits_top or grits_con)
 
     Returns:
-        Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
+        Tuple of (true_positive_score, true_positive_score_upper_bound,
         true_grid_scores, pred_grid_scores).
     """
     num_true_grids = len(true_grids)
@@ -692,7 +693,7 @@ def hungarian_grits_loc(
 
 
 class GritsEvaluator:
-    """Accumulates results from multiple grits calls and computes aggregate F1."""
+    """Accumulates results from multiple GriTS evaluation calls and computes aggregate metrics."""
 
     _METRIC_FUNCTIONS: dict[
         str, Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray]]
