@@ -772,3 +772,63 @@ class GritsEvaluator:
         avg_precision = sum(precisions) / len(precisions)
 
         return avg_f1, avg_precision, avg_recall
+
+
+class MultiGritsEvaluator:
+    """Tracks multiple GriTS metrics simultaneously by composing single-metric evaluators."""
+
+    def __init__(self, metrics: list[str] | None = None) -> None:
+        """Initialize the evaluator with the specified metrics.
+
+        Args:
+            metrics: List of metric names to track. Defaults to ["con", "loc", "top"].
+        """
+        if metrics is None:
+            metrics = ["con", "loc", "top"]
+        self._evaluators = {metric: GritsEvaluator(metric=metric) for metric in metrics}
+
+    @property
+    def metrics(self) -> list[str]:
+        """Return the list of metric names being tracked."""
+        return list(self._evaluators)
+
+    def eval_sample(self, true_grids: dict[str, list], pred_grids: dict[str, list]) -> None:
+        """Evaluate a sample for each metric.
+
+        Args:
+            true_grids: Dict mapping metric name to list of ground truth grids.
+            pred_grids: Dict mapping metric name to list of predicted grids.
+        """
+        for metric, evaluator in self._evaluators.items():
+            evaluator.eval_sample(true_grids[metric], pred_grids[metric])
+
+    def append_result(
+        self, true_positive_scores: dict[str, float], num_true_cells: int, num_pred_cells: int
+    ) -> None:
+        """Append a pre-computed result for each metric.
+
+        Cell counts are shared across metrics (same table structure).
+
+        Args:
+            true_positive_scores: Dict mapping metric name to true positive score.
+            num_true_cells: The number of true cells for a sample.
+            num_pred_cells: The number of predicted cells for a sample.
+        """
+        for metric, evaluator in self._evaluators.items():
+            evaluator.append_result(true_positive_scores[metric], num_true_cells, num_pred_cells)
+
+    def compute_grits(self) -> dict[str, tuple[float, float, float]]:
+        """Compute micro GriTS scores for each metric.
+
+        Returns:
+            Dict mapping metric name to (F1, Precision, Recall) tuples.
+        """
+        return {metric: ev.compute_grits() for metric, ev in self._evaluators.items()}
+
+    def compute_avg_grits(self) -> dict[str, tuple[float, float, float]]:
+        """Compute macro-averaged GriTS scores for each metric.
+
+        Returns:
+            Dict mapping metric name to (F1, Precision, Recall) tuples.
+        """
+        return {metric: ev.compute_avg_grits() for metric, ev in self._evaluators.items()}

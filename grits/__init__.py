@@ -10,6 +10,7 @@ from .bbox import (
 )
 from .grits import (
     GritsEvaluator,
+    MultiGritsEvaluator,
     cells_to_grid_con,
     cells_to_grid_loc,
     cells_to_grid_top,
@@ -48,6 +49,7 @@ __all__ = [
     "hungarian_grits_loc",
     "hungarian_grits_top",
     "GritsEvaluator",
+    "MultiGritsEvaluator",
     # utilities
     "compute_fscore",
     "iou",

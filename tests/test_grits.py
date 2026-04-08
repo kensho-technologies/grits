@@ -5,6 +5,7 @@ import pytest
 from grits.bbox import BBox
 from grits.grits import (
     GritsEvaluator,
+    MultiGritsEvaluator,
     cells_to_grid_con,
     cells_to_grid_loc,
     cells_to_grid_top,
@@ -393,3 +394,50 @@ class TestGritsEvaluator:
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
             GritsEvaluator(metric="invalid")
+
+
+class TestMultiGritsEvaluator:
+    def test_default_metrics(self):
+        evaluator = MultiGritsEvaluator()
+        assert evaluator.metrics == ["con", "loc", "top"]
+
+    def test_custom_metrics(self):
+        evaluator = MultiGritsEvaluator(metrics=["con", "top"])
+        assert evaluator.metrics == ["con", "top"]
+
+    def test_eval_sample_perfect_score(self):
+        evaluator = MultiGritsEvaluator(metrics=["con", "top"])
+        true_grid_con = np.array([["A", "B"], ["C", "D"]], dtype=object)
+        true_grid_top = [[[0, 0, 1, 1], [0, 0, 1, 1]], [[0, 0, 1, 1], [0, 0, 1, 1]]]
+        true_grids = {"con": [true_grid_con], "top": [true_grid_top]}
+        evaluator.eval_sample(true_grids, true_grids)
+        results = evaluator.compute_grits()
+        assert set(results) == {"con", "top"}
+        for metric in ("con", "top"):
+            f1, precision, recall = results[metric]
+            assert f1 == 1.0
+            assert precision == 1.0
+            assert recall == 1.0
+
+    def test_append_result(self):
+        evaluator = MultiGritsEvaluator(metrics=["con", "loc"])
+        evaluator.append_result({"con": 4.0, "loc": 4.0}, num_true_cells=4, num_pred_cells=4)
+        results = evaluator.compute_grits()
+        for metric in ("con", "loc"):
+            f1, _, _ = results[metric]
+            assert f1 == 1.0
+
+    def test_compute_avg_grits(self):
+        evaluator = MultiGritsEvaluator(metrics=["con"])
+        grid = np.array([["A", "B"]], dtype=object)
+        evaluator.eval_sample({"con": [grid]}, {"con": [grid]})
+        results = evaluator.compute_avg_grits()
+        assert "con" in results
+        avg_f1, avg_precision, avg_recall = results["con"]
+        assert avg_f1 == 1.0
+        assert avg_precision == 1.0
+        assert avg_recall == 1.0
+
+    def test_invalid_metric_raises(self):
+        with pytest.raises(ValueError, match="metric must be one of"):
+            MultiGritsEvaluator(metrics=["invalid"])
