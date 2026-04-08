@@ -745,7 +745,7 @@ class GritsEvaluator:
         """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
 
         Returns:
-            Dict with keys grits_METRICTYPE, grits_METRICTYPE_precision, and grits_METRICTYPE_recall.
+            Dict with keys grits_METRIC, grits_METRIC_precision, and grits_METRIC_recall.
         """
         total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
@@ -764,7 +764,7 @@ class GritsEvaluator:
         """Compute the (macro) average GriTS score. Compute the GriTS score for each instance, then average the GriTS score over all instances.
 
         Returns:
-            Dict with keys grits_METRIC, grits_METRIC_precision, and grits_METRIC_recall.
+            Dict with keys avg_grits_METRIC, avg_grits_METRIC_precision, and avg_grits_METRIC_recall.
         """
         f1s = []
         precisions = []
@@ -880,7 +880,7 @@ class MultiGritsEvaluator:
         """Compute macro-averaged GriTS scores for each metric.
 
         Returns:
-            Dict with keys like grits_con, grits_con_precision, grits_con_recall
+            Dict with keys like avg_grits_con, avg_grits_con_precision, avg_grits_con_recall
             for each metric with at least one evaluated sample.
         """
         results: dict[str, float] = {}
