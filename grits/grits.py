@@ -703,6 +703,20 @@ class GritsEvaluator:
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
 
+    def append_result(
+        self, true_positive_score: float, num_true_cells: int, num_pred_cells: int
+    ) -> None:
+        """Append a pre-computed result to the evaluator.
+
+        Args:
+            true_positive_score: The true positive score for a sample.
+            num_true_cells: The number of true cells for a sample.
+            num_pred_cells: The number of predicted cells for a sample.
+        """
+        self.true_positive_scores.append(true_positive_score)
+        self.num_true_cells.append(num_true_cells)
+        self.num_pred_cells.append(num_pred_cells)
+
     def eval_sample(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
         """Evaluate a sample and store the results."""
         if isinstance(true_grids, np.ndarray):
