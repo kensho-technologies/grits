@@ -406,6 +406,27 @@ class TestGritsEvaluator:
         assert evaluator.num_true_grids == [1]
         assert evaluator.num_pred_grids == [1]
 
+    def test_exact_match_accuracy_perfect(self):
+        evaluator = GritsEvaluator(metric="con")
+        grid = np.array([["A", "B"]], dtype=object)
+        evaluator.eval_sample(grid, grid)
+        assert evaluator.compute_grits()["grits_con_exact_match_accuracy"] == 1.0
+
+    def test_exact_match_accuracy_no_match(self):
+        evaluator = GritsEvaluator(metric="con")
+        true_grid = np.array([["A", "B"]], dtype=object)
+        pred_grid = np.array([["X", "Y"]], dtype=object)
+        evaluator.eval_sample(true_grid, pred_grid)
+        assert evaluator.compute_grits()["grits_con_exact_match_accuracy"] == 0.0
+
+    def test_exact_match_accuracy_mixed(self):
+        evaluator = GritsEvaluator(metric="con")
+        grid = np.array([["A", "B"]], dtype=object)
+        diff_grid = np.array([["X", "Y"]], dtype=object)
+        evaluator.eval_sample(grid, grid)  # exact match
+        evaluator.eval_sample(grid, diff_grid)  # not exact
+        assert evaluator.compute_grits()["grits_con_exact_match_accuracy"] == 0.5
+
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
             GritsEvaluator(metric="invalid")

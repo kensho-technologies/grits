@@ -722,7 +722,7 @@ class GritsEvaluator:
 
     _METRIC_FUNCTIONS: dict[
         str,
-        Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]],
+        Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]],
     ] = {
         "con": hungarian_grits_con,
         "loc": hungarian_grits_loc,
@@ -735,13 +735,14 @@ class GritsEvaluator:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
         self._metric = metric
         self._grits_function: Callable[
-            [list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]
+            [list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]
         ] = self._METRIC_FUNCTIONS[metric]
         self.true_positive_scores: list[float] = []
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
         self.num_true_grids: list[int] = []
         self.num_pred_grids: list[int] = []
+        self.num_exact_grid_matches: list[int] = []
 
     def append_result(
         self, true_positive_score: float, num_true_cells: int, num_pred_cells: int
@@ -765,6 +766,7 @@ class GritsEvaluator:
             pred_grids = [pred_grids]
         result = self._grits_function(true_grids, pred_grids)
         true_positive_score = result[0]
+        num_exact_grid_matches = result[6]
         num_true_cells = sum([len(true_grid) * _get_n_cols(true_grid) for true_grid in true_grids])
         num_pred_cells = sum([len(pred_grid) * _get_n_cols(pred_grid) for pred_grid in pred_grids])
         self.true_positive_scores.append(true_positive_score)
@@ -772,12 +774,14 @@ class GritsEvaluator:
         self.num_pred_cells.append(num_pred_cells)
         self.num_true_grids.append(len(true_grids))
         self.num_pred_grids.append(len(pred_grids))
+        self.num_exact_grid_matches.append(num_exact_grid_matches)
 
     def compute_grits(self) -> dict[str, float]:
         """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
 
         Returns:
-            Dict with keys grits_METRIC, grits_METRIC_precision, and grits_METRIC_recall.
+            Dict with keys grits_METRIC, grits_METRIC_precision, grits_METRIC_recall,
+            and grits_METRIC_exact_match_accuracy.
         """
         total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
@@ -785,11 +789,17 @@ class GritsEvaluator:
         f1, precision, recall = compute_fscore(
             total_true_positive_score, total_num_true, total_num_positives
         )
+        exact_match_accuracy = (
+            sum(self.num_exact_grid_matches) / len(self.num_exact_grid_matches)
+            if self.num_exact_grid_matches
+            else 0.0
+        )
         m = self._metric
         return {
             f"grits_{m}": f1,
             f"grits_{m}_precision": precision,
             f"grits_{m}_recall": recall,
+            f"grits_{m}_exact_match_accuracy": exact_match_accuracy,
         }
 
     def compute_avg_grits(self) -> dict[str, float]:
