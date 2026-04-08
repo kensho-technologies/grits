@@ -391,9 +391,7 @@ def factored_2dmss(
             grid_scores[true_row, true_col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
-            is_exact_match = (
-                1 if true_positive_score == num_true_cells == num_pred_cells else 0
-            )
+            is_exact_match = 1 if true_positive_score == num_true_cells == num_pred_cells else 0
             return (
                 true_positive_score,
                 true_positive_score,
@@ -436,9 +434,7 @@ def factored_2dmss(
             pred_grid_scores[pred_row, col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
-            is_exact_match = (
-                1 if true_positive_score == num_true_cells == num_pred_cells else 0
-            )
+            is_exact_match = 1 if true_positive_score == num_true_cells == num_pred_cells else 0
             return (
                 true_positive_score,
                 true_positive_score,
@@ -826,10 +822,22 @@ class GritsEvaluator:
         precisions = []
         recalls = []
         exact_match_accuracies = []
-        for true_positive_score, num_true_cells, num_positive, num_true_grids, exact_grid_matches in zip(
-            self.true_positive_scores, self.num_true_cells, self.num_pred_cells, self.num_true_grids, self.num_exact_grid_matches
+        for (
+            true_positive_score,
+            num_true_cells,
+            num_positive,
+            num_true_grids,
+            exact_grid_matches,
+        ) in zip(
+            self.true_positive_scores,
+            self.num_true_cells,
+            self.num_pred_cells,
+            self.num_true_grids,
+            self.num_exact_grid_matches,
         ):
-            f1, precision, recall = compute_fscore(true_positive_score, num_true_cells, num_positive)
+            f1, precision, recall = compute_fscore(
+                true_positive_score, num_true_cells, num_positive
+            )
             f1s.append(f1)
             recalls.append(recall)
             precisions.append(precision)
@@ -839,7 +847,8 @@ class GritsEvaluator:
             f"avg_grits_{m}": sum(f1s) / len(f1s),
             f"avg_grits_{m}_precision": sum(precisions) / len(precisions),
             f"avg_grits_{m}_recall": sum(recalls) / len(recalls),
-            f"avg_grits_{m}_exact_match_accuracy": sum(exact_match_accuracies) / len(exact_match_accuracies)
+            f"avg_grits_{m}_exact_match_accuracy": sum(exact_match_accuracies)
+            / len(exact_match_accuracies),
         }
 
 
