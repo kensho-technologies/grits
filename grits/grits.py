@@ -655,7 +655,7 @@ def _hungarian_grits(
     ]
 
     exact_match_by_grid = is_exact_match_matrix[matched_true_indices, matched_pred_indices]
-    num_exact_grid_matches = sum(exact_match_by_grid)
+    num_exact_grid_matches = int(sum(exact_match_by_grid))
 
     true_positive_score = float(true_positive_scores_per_grid.sum())
     true_positive_score_upper_bound = float(true_positive_scores_upper_bound.sum())
