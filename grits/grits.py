@@ -705,6 +705,7 @@ class GritsEvaluator:
         """Initialize the evaluator with the specified metric."""
         if metric not in self._METRIC_FUNCTIONS:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
+        self._metric = metric
         self._grits_function: Callable[
             [list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]
         ] = self._METRIC_FUNCTIONS[metric]
@@ -734,30 +735,37 @@ class GritsEvaluator:
             pred_grids = [pred_grids]
         result = self._grits_function(true_grids, pred_grids)
         true_positive_score = result[0]
-        num_true = sum([len(true_grid) * _get_n_cols(true_grid) for true_grid in true_grids])
-        num_pred = sum([len(pred_grid) * _get_n_cols(pred_grid) for pred_grid in pred_grids])
+        num_true_cells = sum([len(true_grid) * _get_n_cols(true_grid) for true_grid in true_grids])
+        num_pred_cells = sum([len(pred_grid) * _get_n_cols(pred_grid) for pred_grid in pred_grids])
         self.true_positive_scores.append(true_positive_score)
-        self.num_true_cells.append(num_true)
-        self.num_pred_cells.append(num_pred)
+        self.num_true_cells.append(num_true_cells)
+        self.num_pred_cells.append(num_pred_cells)
 
-    def compute_grits(self) -> tuple[float, float, float]:
+    def compute_grits(self) -> dict[str, float]:
         """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
 
         Returns:
-            A tuple containing (GriTS F1-score, Precision, Recall).
+            Dict with keys grits_METRICTYPE, grits_METRICTYPE_precision, and grits_METRICTYPE_recall.
         """
         total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
         total_num_positives = sum(self.num_pred_cells)
-        return compute_fscore(total_true_positive_score, total_num_true, total_num_positives)
+        f1, precision, recall = compute_fscore(
+            total_true_positive_score, total_num_true, total_num_positives
+        )
+        m = self._metric
+        return {
+            f"grits_{m}": f1,
+            f"grits_{m}_precision": precision,
+            f"grits_{m}_recall": recall,
+        }
 
-    def compute_avg_grits(self) -> tuple[float, float, float]:
+    def compute_avg_grits(self) -> dict[str, float]:
         """Compute the (macro) average GriTS score. Compute the GriTS score for each instance, then average the GriTS score over all instances.
 
         Returns:
-            A tuple containing (GriTS F1-score, Precision, Recall).
+            Dict with keys grits_METRIC, grits_METRIC_precision, and grits_METRIC_recall.
         """
-
         f1s = []
         precisions = []
         recalls = []
@@ -769,11 +777,12 @@ class GritsEvaluator:
             recalls.append(recall)
             precisions.append(precision)
 
-        avg_f1 = sum(f1s) / len(f1s)
-        avg_recall = sum(recalls) / len(recalls)
-        avg_precision = sum(precisions) / len(precisions)
-
-        return avg_f1, avg_precision, avg_recall
+        m = self._metric
+        return {
+            f"avg_grits_{m}": sum(f1s) / len(f1s),
+            f"avg_grits_{m}_precision": sum(precisions) / len(precisions),
+            f"avg_grits_{m}_recall": sum(recalls) / len(recalls),
+        }
 
 
 class MultiGritsEvaluator:
@@ -854,28 +863,28 @@ class MultiGritsEvaluator:
         for metric, evaluator in self._evaluators.items():
             evaluator.append_result(true_positive_scores[metric], num_true_cells, num_pred_cells)
 
-    def compute_grits(self) -> dict[str, tuple[float, float, float]]:
+    def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.
 
         Returns:
-            Dict mapping metric name to (F1, Precision, Recall) tuples.
-            Only includes metrics with at least one evaluated sample.
+            Dict with keys like grits_con, grits_con_precision, grits_con_recall
+            for each metric with at least one evaluated sample.
         """
-        return {
-            metric: ev.compute_grits()
-            for metric, ev in self._evaluators.items()
-            if len(ev.true_positive_scores) > 0
-        }
+        results: dict[str, float] = {}
+        for ev in self._evaluators.values():
+            if len(ev.true_positive_scores) > 0:
+                results.update(ev.compute_grits())
+        return results
 
-    def compute_avg_grits(self) -> dict[str, tuple[float, float, float]]:
+    def compute_avg_grits(self) -> dict[str, float]:
         """Compute macro-averaged GriTS scores for each metric.
 
         Returns:
-            Dict mapping metric name to (F1, Precision, Recall) tuples.
-            Only includes metrics with at least one evaluated sample.
+            Dict with keys like grits_con, grits_con_precision, grits_con_recall
+            for each metric with at least one evaluated sample.
         """
-        return {
-            metric: ev.compute_avg_grits()
-            for metric, ev in self._evaluators.items()
-            if len(ev.true_positive_scores) > 0
-        }
+        results: dict[str, float] = {}
+        for ev in self._evaluators.values():
+            if len(ev.true_positive_scores) > 0:
+                results.update(ev.compute_avg_grits())
+        return results

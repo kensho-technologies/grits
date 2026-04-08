@@ -335,10 +335,10 @@ class TestGritsEvaluator:
         evaluator = GritsEvaluator(metric="con")
         true_grid = np.array([["A", "B"], ["C", "D"]], dtype=object)
         evaluator.eval_sample(true_grid, true_grid)
-        f1, precision, recall = evaluator.compute_grits()
-        assert f1 == 1.0
-        assert precision == 1.0
-        assert recall == 1.0
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 1.0
+        assert results["grits_con_precision"] == 1.0
+        assert results["grits_con_recall"] == 1.0
 
     def test_multiple_adds(self):
         evaluator = GritsEvaluator(metric="con")
@@ -346,17 +346,17 @@ class TestGritsEvaluator:
         grid2 = np.array([["X", "Y"]], dtype=object)
         evaluator.eval_sample(grid1, grid1)
         evaluator.eval_sample(grid2, grid2)
-        f1, precision, recall = evaluator.compute_grits()
-        assert f1 == 1.0
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 1.0
 
     def test_compute_avg_grits(self):
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A", "B"]], dtype=object)
         evaluator.eval_sample(grid, grid)
-        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_grits()
-        assert avg_f1 == 1.0
-        assert avg_precision == 1.0
-        assert avg_recall == 1.0
+        results = evaluator.compute_avg_grits()
+        assert results["avg_grits_con"] == 1.0
+        assert results["avg_grits_con_precision"] == 1.0
+        assert results["avg_grits_con_recall"] == 1.0
 
     def test_compute_avg_grits_precision_recall_order(self):
         evaluator = GritsEvaluator(metric="con")
@@ -364,32 +364,29 @@ class TestGritsEvaluator:
         true_grid = np.array([["A", "B"]], dtype=object)
         pred_grid = np.array([["A", "B", "X"]], dtype=object)
         evaluator.eval_sample(true_grid, pred_grid)
-        avg_f1, avg_precision, avg_recall = evaluator.compute_avg_grits()
-        assert avg_precision == pytest.approx(2.0 / 3.0)
-        assert avg_recall == 1.0
-        assert avg_f1 == pytest.approx(0.8)
+        results = evaluator.compute_avg_grits()
+        assert results["avg_grits_con_precision"] == pytest.approx(2.0 / 3.0)
+        assert results["avg_grits_con_recall"] == 1.0
+        assert results["avg_grits_con"] == pytest.approx(0.8)
 
     def test_accepts_single_numpy_array(self):
         evaluator = GritsEvaluator(metric="con")
         grid = np.array([["A"]], dtype=object)
         # Should not raise — eval_sample() wraps single arrays in a list
         evaluator.eval_sample(grid, grid)
-        f1, _, _ = evaluator.compute_grits()
-        assert f1 == 1.0
+        assert evaluator.compute_grits()["grits_con"] == 1.0
 
     def test_metric_top(self):
         evaluator = GritsEvaluator(metric="top")
         grid = np.array([[[0, 0, 1, 1], [0, 0, 1, 1]]])
         evaluator.eval_sample(grid, grid)
-        f1, _, _ = evaluator.compute_grits()
-        assert f1 == 1.0
+        assert evaluator.compute_grits()["grits_top"] == 1.0
 
     def test_metric_loc(self):
         evaluator = GritsEvaluator(metric="loc")
         grid = np.array([[[0, 0, 10, 10], [10, 0, 20, 10]]])
         evaluator.eval_sample(grid, grid)
-        f1, _, _ = evaluator.compute_grits()
-        assert f1 == 1.0
+        assert evaluator.compute_grits()["grits_loc"] == 1.0
 
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
@@ -412,31 +409,26 @@ class TestMultiGritsEvaluator:
         true_grids = {"con": [true_grid_con], "top": [true_grid_top]}
         evaluator.eval_sample(true_grids, true_grids)
         results = evaluator.compute_grits()
-        assert set(results) == {"con", "top"}
         for metric in ("con", "top"):
-            f1, precision, recall = results[metric]
-            assert f1 == 1.0
-            assert precision == 1.0
-            assert recall == 1.0
+            assert results[f"grits_{metric}"] == 1.0
+            assert results[f"grits_{metric}_precision"] == 1.0
+            assert results[f"grits_{metric}_recall"] == 1.0
 
     def test_append_result(self):
         evaluator = MultiGritsEvaluator(metrics=["con", "loc"])
         evaluator.append_result({"con": 4.0, "loc": 4.0}, num_true_cells=4, num_pred_cells=4)
         results = evaluator.compute_grits()
         for metric in ("con", "loc"):
-            f1, _, _ = results[metric]
-            assert f1 == 1.0
+            assert results[f"grits_{metric}"] == 1.0
 
     def test_compute_avg_grits(self):
         evaluator = MultiGritsEvaluator(metrics=["con"])
         grid = np.array([["A", "B"]], dtype=object)
         evaluator.eval_sample({"con": [grid]}, {"con": [grid]})
         results = evaluator.compute_avg_grits()
-        assert "con" in results
-        avg_f1, avg_precision, avg_recall = results["con"]
-        assert avg_f1 == 1.0
-        assert avg_precision == 1.0
-        assert avg_recall == 1.0
+        assert results["avg_grits_con"] == 1.0
+        assert results["avg_grits_con_precision"] == 1.0
+        assert results["avg_grits_con_recall"] == 1.0
 
     def test_eval_html_perfect_score(self):
         html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>"
@@ -444,10 +436,9 @@ class TestMultiGritsEvaluator:
         evaluator.eval_html(html, html)
         results = evaluator.compute_grits()
         for metric in ("con", "top"):
-            f1, precision, recall = results[metric]
-            assert f1 == 1.0
-            assert precision == 1.0
-            assert recall == 1.0
+            assert results[f"grits_{metric}"] == 1.0
+            assert results[f"grits_{metric}_precision"] == 1.0
+            assert results[f"grits_{metric}_recall"] == 1.0
 
     def test_eval_html_different_tables(self):
         true_html = "<table><tr><td>A</td><td>B</td></tr></table>"
@@ -456,8 +447,8 @@ class TestMultiGritsEvaluator:
         evaluator.eval_html(true_html, pred_html)
         results = evaluator.compute_grits()
         # "top" should be perfect (same structure), "con" should not (different text)
-        assert results["top"][0] == 1.0
-        assert results["con"][0] < 1.0
+        assert results["grits_top"] == 1.0
+        assert results["grits_con"] < 1.0
 
     def test_eval_html_invalid_html_raises(self):
         evaluator = MultiGritsEvaluator()
@@ -478,11 +469,13 @@ class TestMultiGritsEvaluator:
         html = "<table><tr><td>A</td></tr></table>"
         evaluator.eval_html(html, html)
         results = evaluator.compute_grits()
-        assert set(results) == {"con", "top"}
-        assert "loc" not in results
+        assert "grits_con" in results
+        assert "grits_top" in results
+        assert "grits_loc" not in results
         avg_results = evaluator.compute_avg_grits()
-        assert set(avg_results) == {"con", "top"}
-        assert "loc" not in avg_results
+        assert "avg_grits_con" in avg_results
+        assert "avg_grits_top" in avg_results
+        assert "avg_grits_loc" not in avg_results
 
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
