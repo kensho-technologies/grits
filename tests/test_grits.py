@@ -438,6 +438,52 @@ class TestMultiGritsEvaluator:
         assert avg_precision == 1.0
         assert avg_recall == 1.0
 
+    def test_eval_html_perfect_score(self):
+        html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>"
+        evaluator = MultiGritsEvaluator()
+        evaluator.eval_html(html, html)
+        results = evaluator.compute_grits()
+        for metric in ("con", "top"):
+            f1, precision, recall = results[metric]
+            assert f1 == 1.0
+            assert precision == 1.0
+            assert recall == 1.0
+
+    def test_eval_html_different_tables(self):
+        true_html = "<table><tr><td>A</td><td>B</td></tr></table>"
+        pred_html = "<table><tr><td>A</td><td>X</td></tr></table>"
+        evaluator = MultiGritsEvaluator()
+        evaluator.eval_html(true_html, pred_html)
+        results = evaluator.compute_grits()
+        # "top" should be perfect (same structure), "con" should not (different text)
+        assert results["top"][0] == 1.0
+        assert results["con"][0] < 1.0
+
+    def test_eval_html_invalid_html_raises(self):
+        evaluator = MultiGritsEvaluator()
+        with pytest.raises(ValueError, match="Failed to parse true_html"):
+            evaluator.eval_html("not valid html<><<", "<table><tr><td>A</td></tr></table>")
+        with pytest.raises(ValueError, match="Failed to parse pred_html"):
+            evaluator.eval_html("<table><tr><td>A</td></tr></table>", "not valid html<><<")
+
+    def test_eval_html_missing_metric_raises(self):
+        evaluator = MultiGritsEvaluator(metrics=["con"])
+        with pytest.raises(ValueError, match="eval_html requires both"):
+            evaluator.eval_html(
+                "<table><tr><td>A</td></tr></table>", "<table><tr><td>A</td></tr></table>"
+            )
+
+    def test_omits_metrics_without_samples(self):
+        evaluator = MultiGritsEvaluator()
+        html = "<table><tr><td>A</td></tr></table>"
+        evaluator.eval_html(html, html)
+        results = evaluator.compute_grits()
+        assert set(results) == {"con", "top"}
+        assert "loc" not in results
+        avg_results = evaluator.compute_avg_grits()
+        assert set(avg_results) == {"con", "top"}
+        assert "loc" not in avg_results
+
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
             MultiGritsEvaluator(metrics=["invalid"])

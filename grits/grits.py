@@ -7,6 +7,7 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 from .bbox import BBox, get_overlap_area
+from .utils import html_to_cells
 
 
 def _cells_to_grid(cells: list[dict[str, Any]], key: str, default_value: Any) -> list[list[Any]]:
@@ -803,6 +804,41 @@ class MultiGritsEvaluator:
         for metric, evaluator in self._evaluators.items():
             evaluator.eval_sample(true_grids[metric], pred_grids[metric])
 
+    def eval_html(self, true_html: str, pred_html: str) -> None:
+        """Parse HTML tables and evaluate the con and top metrics.
+
+        Args:
+            true_html: HTML string of the ground truth table.
+            pred_html: HTML string of the predicted table.
+
+        Raises:
+            ValueError: If either HTML string cannot be parsed, or if the evaluator
+                is not tracking both "con" and "top" metrics.
+        """
+        missing = {"con", "top"} - set(self._evaluators)
+        if missing:
+            raise ValueError(
+                f"eval_html requires both 'con' and 'top' metrics, but missing: {missing}"
+            )
+
+        true_cells = html_to_cells(true_html)
+        pred_cells = html_to_cells(pred_html)
+        if true_cells is None:
+            raise ValueError("Failed to parse true_html")
+        if pred_cells is None:
+            raise ValueError("Failed to parse pred_html")
+
+        true_grids: dict[str, list] = {
+            "con": [cells_to_grid_con(true_cells)],
+            "top": [cells_to_grid_top(true_cells)],
+        }
+        pred_grids: dict[str, list] = {
+            "con": [cells_to_grid_con(pred_cells)],
+            "top": [cells_to_grid_top(pred_cells)],
+        }
+        for metric in ("con", "top"):
+            self._evaluators[metric].eval_sample(true_grids[metric], pred_grids[metric])
+
     def append_result(
         self, true_positive_scores: dict[str, float], num_true_cells: int, num_pred_cells: int
     ) -> None:
@@ -823,13 +859,23 @@ class MultiGritsEvaluator:
 
         Returns:
             Dict mapping metric name to (F1, Precision, Recall) tuples.
+            Only includes metrics with at least one evaluated sample.
         """
-        return {metric: ev.compute_grits() for metric, ev in self._evaluators.items()}
+        return {
+            metric: ev.compute_grits()
+            for metric, ev in self._evaluators.items()
+            if len(ev.true_positive_scores) > 0
+        }
 
     def compute_avg_grits(self) -> dict[str, tuple[float, float, float]]:
         """Compute macro-averaged GriTS scores for each metric.
 
         Returns:
             Dict mapping metric name to (F1, Precision, Recall) tuples.
+            Only includes metrics with at least one evaluated sample.
         """
-        return {metric: ev.compute_avg_grits() for metric, ev in self._evaluators.items()}
+        return {
+            metric: ev.compute_avg_grits()
+            for metric, ev in self._evaluators.items()
+            if len(ev.true_positive_scores) > 0
+        }
