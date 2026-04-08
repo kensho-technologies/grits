@@ -692,7 +692,8 @@ class GritsEvaluator:
     """Accumulates results from multiple GriTS evaluation calls and computes aggregate metrics."""
 
     _METRIC_FUNCTIONS: dict[
-        str, Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]]
+        str,
+        Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]],
     ] = {
         "con": hungarian_grits_con,
         "loc": hungarian_grits_loc,
