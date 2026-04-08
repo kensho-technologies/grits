@@ -373,6 +373,7 @@ def factored_2dmss(
     num_true_cells = true_grid_n_rows * true_grid_n_cols
     pred_grid_n_rows = len(pred_grid)
     pred_grid_n_cols = _get_n_cols(pred_grid.tolist())
+    num_pred_cells = pred_grid_n_rows * pred_grid_n_cols
 
     true_shape = (true_grid_n_rows, true_grid_n_cols)
     pred_shape = (pred_grid_n_rows, pred_grid_n_cols)
@@ -390,7 +391,9 @@ def factored_2dmss(
             grid_scores[true_row, true_col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
-            is_exact_match = 1 if true_positive_score == num_true_cells else 0
+            is_exact_match = (
+                1 if true_positive_score == num_true_cells == num_pred_cells else 0
+            )
             return (
                 true_positive_score,
                 true_positive_score,
@@ -433,7 +436,9 @@ def factored_2dmss(
             pred_grid_scores[pred_row, col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
-            is_exact_match = 1 if true_positive_score == num_true_cells else 0
+            is_exact_match = (
+                1 if true_positive_score == num_true_cells == num_pred_cells else 0
+            )
             return (
                 true_positive_score,
                 true_positive_score,
@@ -460,7 +465,7 @@ def factored_2dmss(
             pred_grid_scores[pred_row_num, pred_column_num] = grid_cell_score
             true_positive_score += grid_cell_score
 
-    is_exact_match = 1 if true_positive_score == num_true_cells else 0
+    is_exact_match = 1 if true_positive_score == num_true_cells == num_pred_cells else 0
     return (
         true_positive_score,
         true_positive_score_upper_bound,
