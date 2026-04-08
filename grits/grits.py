@@ -391,7 +391,13 @@ def factored_2dmss(
             true_positive_score += cell_score
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
             is_exact_match = 1 if true_positive_score == num_true_cells else 0
-            return true_positive_score, true_positive_score, grid_scores, grid_scores, is_exact_match
+            return (
+                true_positive_score,
+                true_positive_score,
+                grid_scores,
+                grid_scores,
+                is_exact_match,
+            )
 
     pre_computed_rewards = {}
     transpose_rewards = {}
@@ -722,7 +728,9 @@ class GritsEvaluator:
 
     _METRIC_FUNCTIONS: dict[
         str,
-        Callable[[list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]],
+        Callable[
+            [list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]
+        ],
     ] = {
         "con": hungarian_grits_con,
         "loc": hungarian_grits_loc,
@@ -790,7 +798,7 @@ class GritsEvaluator:
             total_true_positive_score, total_num_true, total_num_positives
         )
         exact_match_accuracy = (
-            sum(self.num_exact_grid_matches) / len(self.num_exact_grid_matches)
+            sum(self.num_exact_grid_matches) / sum(self.num_true_grids)
             if self.num_exact_grid_matches
             else 0.0
         )
@@ -806,24 +814,27 @@ class GritsEvaluator:
         """Compute the (macro) average GriTS score. Compute the GriTS score for each instance, then average the GriTS score over all instances.
 
         Returns:
-            Dict with keys avg_grits_METRIC, avg_grits_METRIC_precision, and avg_grits_METRIC_recall.
+            Dict with keys avg_grits_METRIC, avg_grits_METRIC_precision,
+            avg_grits_METRIC_recall, and avg_grits_METRIC_exact_match_accuracy.
         """
         f1s = []
         precisions = []
         recalls = []
-        for true_positive_score, num_true, num_positive in zip(
-            self.true_positive_scores, self.num_true_cells, self.num_pred_cells
+        exact_match_accuracies = []
+        for true_positive_score, num_true_cells, num_positive, num_true_grids, exact_grid_matches in zip(
+            self.true_positive_scores, self.num_true_cells, self.num_pred_cells, self.num_true_grids, self.num_exact_grid_matches
         ):
-            f1, precision, recall = compute_fscore(true_positive_score, num_true, num_positive)
+            f1, precision, recall = compute_fscore(true_positive_score, num_true_cells, num_positive)
             f1s.append(f1)
             recalls.append(recall)
             precisions.append(precision)
-
+            exact_match_accuracies.append(exact_grid_matches / num_true_grids)
         m = self._metric
         return {
             f"avg_grits_{m}": sum(f1s) / len(f1s),
             f"avg_grits_{m}_precision": sum(precisions) / len(precisions),
             f"avg_grits_{m}_recall": sum(recalls) / len(recalls),
+            f"avg_grits_{m}_exact_match_accuracy": sum(exact_match_accuracies) / len(exact_match_accuracies)
         }
 
 
