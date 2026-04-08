@@ -712,6 +712,8 @@ class GritsEvaluator:
         self.true_positive_scores: list[float] = []
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
+        self.num_true_grids: list[int] = []
+        self.num_pred_grids: list[int] = []
 
     def append_result(
         self, true_positive_score: float, num_true_cells: int, num_pred_cells: int
@@ -740,6 +742,8 @@ class GritsEvaluator:
         self.true_positive_scores.append(true_positive_score)
         self.num_true_cells.append(num_true_cells)
         self.num_pred_cells.append(num_pred_cells)
+        self.num_true_grids.append(len(true_grids))
+        self.num_pred_grids.append(len(pred_grids))
 
     def compute_grits(self) -> dict[str, float]:
         """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.

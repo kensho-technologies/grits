@@ -388,6 +388,24 @@ class TestGritsEvaluator:
         evaluator.eval_sample(grid, grid)
         assert evaluator.compute_grits()["grits_loc"] == 1.0
 
+    def test_tracks_grid_counts(self):
+        evaluator = GritsEvaluator(metric="con")
+        grid1 = np.array([["A", "B"]], dtype=object)
+        grid2 = np.array([["X", "Y"]], dtype=object)
+        evaluator.eval_sample([grid1, grid2], [grid1])
+        assert evaluator.num_true_grids == [2]
+        assert evaluator.num_pred_grids == [1]
+        evaluator.eval_sample([grid1], [grid1, grid2])
+        assert evaluator.num_true_grids == [2, 1]
+        assert evaluator.num_pred_grids == [1, 2]
+
+    def test_grid_counts_single_numpy_array(self):
+        evaluator = GritsEvaluator(metric="con")
+        grid = np.array([["A"]], dtype=object)
+        evaluator.eval_sample(grid, grid)
+        assert evaluator.num_true_grids == [1]
+        assert evaluator.num_pred_grids == [1]
+
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
             GritsEvaluator(metric="invalid")
