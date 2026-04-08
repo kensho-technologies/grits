@@ -345,7 +345,7 @@ def _get_n_cols(grid: list[list[object]]) -> int:
 
 def factored_2dmss(
     true_grid: np.ndarray, pred_grid: np.ndarray, reward_function: Callable
-) -> tuple[float, float, np.ndarray, np.ndarray]:
+) -> tuple[float, float, np.ndarray, np.ndarray, int]:
     """Factored 2D-MSS: Factored two-dimensional most-similar substructures
 
     This is a polynomial-time heuristic to computing the 2D-MSS of two matrices,
@@ -364,11 +364,13 @@ def factored_2dmss(
 
     Returns:
         Tuple of (true_positive_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores), where the scalar values are floats
-        and the grid scores are numpy arrays.
+        true_grid_scores, pred_grid_scores, is_exact_match), where the scalar values
+        are floats, the grid scores are numpy arrays, and is_exact_match is 1 if the
+        true_positive_score equals the number of true cells, otherwise 0.
     """
     true_grid_n_rows = len(true_grid)
     true_grid_n_cols = _get_n_cols(true_grid.tolist())
+    num_true_cells = true_grid_n_rows * true_grid_n_cols
     pred_grid_n_rows = len(pred_grid)
     pred_grid_n_cols = _get_n_cols(pred_grid.tolist())
 
@@ -388,7 +390,8 @@ def factored_2dmss(
             grid_scores[true_row, true_col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
-            return true_positive_score, true_positive_score, grid_scores, grid_scores
+            is_exact_match = 1 if true_positive_score == num_true_cells else 0
+            return true_positive_score, true_positive_score, grid_scores, grid_scores, is_exact_match
 
     pre_computed_rewards = {}
     transpose_rewards = {}
@@ -424,7 +427,14 @@ def factored_2dmss(
             pred_grid_scores[pred_row, col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
-            return true_positive_score, true_positive_score, true_grid_scores, pred_grid_scores
+            is_exact_match = 1 if true_positive_score == num_true_cells else 0
+            return (
+                true_positive_score,
+                true_positive_score,
+                true_grid_scores,
+                pred_grid_scores,
+                is_exact_match,
+            )
 
     true_column_nums, pred_column_nums, col_alignment_score = _align_2d_outer(
         true_shape[::-1], pred_shape[::-1], transpose_rewards
@@ -444,7 +454,14 @@ def factored_2dmss(
             pred_grid_scores[pred_row_num, pred_column_num] = grid_cell_score
             true_positive_score += grid_cell_score
 
-    return true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores
+    is_exact_match = 1 if true_positive_score == num_true_cells else 0
+    return (
+        true_positive_score,
+        true_positive_score_upper_bound,
+        true_grid_scores,
+        pred_grid_scores,
+        is_exact_match,
+    )
 
 
 def lcs_similarity(string1: str, string2: str) -> float:
@@ -512,7 +529,7 @@ def _convert_grid_elements_to_bbox_and_area(grid: list[list]) -> list[list[tuple
 
 def grits_top(
     true_relative_span_grid: list[list[list[int]]], pred_relative_span_grid: list[list[list[int]]]
-) -> tuple[float, float, np.ndarray, np.ndarray]:
+) -> tuple[float, float, np.ndarray, np.ndarray, int]:
     """Compute GriTS_Top given two matrices of cell relative spans.
 
     For the cell at grid location (i,j), let a(i,j) be its rowspan,
@@ -530,7 +547,7 @@ def grits_top(
 
     Returns:
         Tuple of (true_positive_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores).
+        true_grid_scores, pred_grid_scores, is_exact_match).
     """
     return factored_2dmss(
         np.array(_convert_grid_elements_to_bbox_and_area(true_relative_span_grid)),
@@ -541,7 +558,7 @@ def grits_top(
 
 def grits_loc(
     true_bbox_grid: list[list[list[int | float]]], pred_bbox_grid: list[list[list[int | float]]]
-) -> tuple[float, float, np.ndarray, np.ndarray]:
+) -> tuple[float, float, np.ndarray, np.ndarray, int]:
     """Compute GriTS_Loc given two matrices of cell bounding boxes.
 
     This calculates the spatial location similarity.
@@ -551,7 +568,7 @@ def grits_loc(
         pred_bbox_grid: Predicted bounding box grid.
 
     Returns:
-        Tuple of (true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores).
+        Tuple of (true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores, is_exact_match).
     """
 
     return factored_2dmss(
@@ -563,7 +580,7 @@ def grits_loc(
 
 def grits_con(
     true_text_grid: list[list[str]], pred_text_grid: list[list[str]]
-) -> tuple[float, float, np.ndarray, np.ndarray]:
+) -> tuple[float, float, np.ndarray, np.ndarray, int]:
     """Compute GriTS_Con given two matrices of cell text strings.
 
     Args:
@@ -571,7 +588,7 @@ def grits_con(
         pred_text_grid: Predicted text grid
 
     Returns:
-        Tuple of (true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores).
+        Tuple of (true_positive_score, true_positive_score_upper_bound, true_grid_scores, pred_grid_scores, is_exact_match).
     """
     return factored_2dmss(
         np.array(true_text_grid, dtype=object),
@@ -582,7 +599,7 @@ def grits_con(
 
 def _hungarian_grits(
     true_grids: list, pred_grids: list, grits_function: Callable
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]:
+) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Uses the Hungarian algorithm to find the best match between lists of true and predicted grids, and computes the true positive score for the matched pairs.
@@ -594,7 +611,8 @@ def _hungarian_grits(
 
     Returns:
         Tuple of (true_positive_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices).
+        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
+        num_exact_grid_matches).
     """
     num_true_grids = len(true_grids)
     num_pred_grids = len(pred_grids)
@@ -603,6 +621,7 @@ def _hungarian_grits(
     pred_grid_scores_matrix = np.empty((num_true_grids, num_pred_grids), dtype=object)
     score_matrix = np.empty((num_true_grids, num_pred_grids), dtype=np.float32)
     score_upper_bound_matrix = np.empty((num_true_grids, num_pred_grids), dtype=np.float32)
+    is_exact_match_matrix = np.empty((num_true_grids, num_pred_grids), dtype=np.int8)
 
     for true_idx, true_grid in enumerate(true_grids):
         for pred_idx, pred_grid in enumerate(pred_grids):
@@ -611,12 +630,14 @@ def _hungarian_grits(
                 true_positive_cell_score_upper_bound,
                 true_grid_scores,
                 pred_grid_scores,
+                is_exact_match,
             ) = grits_function(true_grid, pred_grid)
 
             true_grid_scores_matrix[true_idx, pred_idx] = true_grid_scores
             pred_grid_scores_matrix[true_idx, pred_idx] = pred_grid_scores
             score_matrix[true_idx, pred_idx] = true_positive_cell_score
             score_upper_bound_matrix[true_idx, pred_idx] = true_positive_cell_score_upper_bound
+            is_exact_match_matrix[true_idx, pred_idx] = is_exact_match
 
     matched_true_indices, matched_pred_indices = linear_sum_assignment(score_matrix, maximize=True)
 
@@ -626,6 +647,9 @@ def _hungarian_grits(
     true_positive_scores_upper_bound = score_upper_bound_matrix[
         matched_true_indices, matched_pred_indices
     ]
+
+    exact_match_by_grid = is_exact_match_matrix[matched_true_indices, matched_pred_indices]
+    num_exact_grid_matches = sum(exact_match_by_grid)
 
     true_positive_score = float(true_positive_scores_per_grid.sum())
     true_positive_score_upper_bound = float(true_positive_scores_upper_bound.sum())
@@ -637,12 +661,13 @@ def _hungarian_grits(
         pred_grid_scores,
         list(matched_true_indices),
         list(matched_pred_indices),
+        num_exact_grid_matches,
     )
 
 
 def hungarian_grits_top(
     true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]:
+) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
     """Compute GriTS_Top metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -651,14 +676,15 @@ def hungarian_grits_top(
 
     Returns:
         Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices).
+        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
+        num_exact_grid_matches).
     """
     return _hungarian_grits(true_grids_top, pred_grids_top, grits_top)
 
 
 def hungarian_grits_con(
     true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]:
+) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
     """Compute GriTS_Con metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -667,7 +693,8 @@ def hungarian_grits_con(
 
     Returns:
         Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices).
+        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
+        num_exact_grid_matches).
     """
     return _hungarian_grits(true_grids_con, pred_grids_con, grits_con)
 
@@ -675,7 +702,7 @@ def hungarian_grits_con(
 def hungarian_grits_loc(
     true_grids_loc: list[list[list[list[int | float]]]],
     pred_grids_loc: list[list[list[list[int | float]]]],
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int]]:
+) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
     """Compute GriTS_Loc metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -684,7 +711,8 @@ def hungarian_grits_loc(
 
     Returns:
         Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices).
+        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
+        num_exact_grid_matches).
     """
     return _hungarian_grits(true_grids_loc, pred_grids_loc, grits_loc)
 
