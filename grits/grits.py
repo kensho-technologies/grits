@@ -896,9 +896,7 @@ class MultiGritsEvaluator:
         for metric, evaluator in self._evaluators.items():
             evaluator.eval_sample(true_grids[metric], pred_grids[metric])
 
-    def eval_html(
-        self, true_htmls: str | list[str], pred_htmls: str | list[str]
-    ) -> None:
+    def eval_html(self, true_htmls: str | list[str], pred_htmls: str | list[str]) -> None:
         """Parse HTML tables and evaluate the con and top metrics.
 
         Args:
