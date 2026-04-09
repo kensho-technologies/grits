@@ -595,6 +595,42 @@ def grits_loc_matching(
     )
 
 
+def grits_top(
+    true_grid_top: list[list[list[int]]], pred_grid_top: list[list[list[int]]]
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Top F-score, precision, and recall for two relative span grids.
+
+    Args:
+        true_grid_top: Ground truth relative span grid
+        pred_grid_top: Predicted relative span grid
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = grits_top_matching(true_grid_top, pred_grid_top)
+    num_true_cells = len(true_grid_top) * _get_n_cols(true_grid_top)
+    num_pred_cells = len(pred_grid_top) * _get_n_cols(pred_grid_top)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
+
+
+def grits_loc(
+    true_grid_loc: list[list[list[int | float]]], pred_grid_loc: list[list[list[int | float]]]
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Loc F-score, precision, and recall for two bounding box grids.
+
+    Args:
+        true_grid_loc: Ground truth bounding box grid.
+        pred_grid_loc: Predicted bounding box grid.
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = grits_loc_matching(true_grid_loc, pred_grid_loc)
+    num_true_cells = len(true_grid_loc) * _get_n_cols(true_grid_loc)
+    num_pred_cells = len(pred_grid_loc) * _get_n_cols(pred_grid_loc)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
+
+
 def grits_con_matching(true_grid_con: list[list[str]], pred_grid_con: list[list[str]]) -> GritsResult:
     """Compute GriTS_Con given two matrices of cell text strings.
 
@@ -610,6 +646,24 @@ def grits_con_matching(true_grid_con: list[list[str]], pred_grid_con: list[list[
         np.array(pred_grid_con, dtype=object),
         reward_function=lcs_similarity,
     )
+
+
+def grits_con(
+    true_grid_con: list[list[str]], pred_grid_con: list[list[str]]
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Con F-score, precision, and recall for two text grids.
+
+    Args:
+        true_grid_con: Ground truth text grid
+        pred_grid_con: Predicted text grid
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = grits_con_matching(true_grid_con, pred_grid_con)
+    num_true_cells = len(true_grid_con) * _get_n_cols(true_grid_con)
+    num_pred_cells = len(pred_grid_con) * _get_n_cols(pred_grid_con)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
 
 
 @dataclasses.dataclass(frozen=True)

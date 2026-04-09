@@ -33,7 +33,7 @@ Requires Python >= 3.10.
 ### Computing GriTS-Con for an individual sample
 
 ```python
-from grits import grits_con_matching, compute_fscore, cell_dicts_to_grid_con
+from grits import grits_con, cell_dicts_to_grid_con
 
 # Define ground-truth and predicted tables as lists of cell dicts
 true_cells = [
@@ -52,12 +52,7 @@ pred_cells = [
 true_grid_con = cell_dicts_to_grid_con(true_cells)
 pred_grid_con = cell_dicts_to_grid_con(pred_cells)
 
-result = grits_con_matching(true_grid_con, pred_grid_con)  # returns a GritsResult
-
-num_true_cells = len(true_grid_con) * len(true_grid_con[0])
-num_pred_cells = len(pred_grid_con) * len(pred_grid_con[0])
-
-grits_con_score, grits_con_precision, grits_con_recall = compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
+grits_con_score, grits_con_precision, grits_con_recall = grits_con(true_grid_con, pred_grid_con)
 
 print(f"GriTS_Con: {grits_con_score:.4f}") # GriTS_Con: 0.8750
 ```
