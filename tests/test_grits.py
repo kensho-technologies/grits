@@ -164,39 +164,33 @@ class TestGritsCon:
         """Test main return path with different-shaped grids (bypasses early returns)."""
         true_grid = [["A"]]
         pred_grid = [["A", "X"]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores, _ = grits_con(
-            true_grid, pred_grid
-        )
-        assert isinstance(true_grid_scores, np.ndarray)
-        assert isinstance(pred_grid_scores, np.ndarray)
-        assert true_grid_scores.shape == (1, 1)
-        assert pred_grid_scores.shape == (1, 2)
-        assert total_match_score == 1.0
-        assert true_grid_scores[0, 0] == 1.0
-        assert pred_grid_scores[0, 0] == 1.0
-        assert pred_grid_scores[0, 1] == 0.0
+        result = grits_con(true_grid, pred_grid)
+        assert isinstance(result.true_grid_scores, np.ndarray)
+        assert isinstance(result.pred_grid_scores, np.ndarray)
+        assert result.true_grid_scores.shape == (1, 1)
+        assert result.pred_grid_scores.shape == (1, 2)
+        assert result.true_positive_score == 1.0
+        assert result.true_grid_scores[0, 0] == 1.0
+        assert result.pred_grid_scores[0, 0] == 1.0
+        assert result.pred_grid_scores[0, 1] == 0.0
 
     def test_no_overlap(self):
         """Test grids with completely different text and different shapes."""
         true_grid = [["A", "B"]]
         pred_grid = [["X"], ["Y"]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores, _ = grits_con(
-            true_grid, pred_grid
-        )
-        assert total_match_score == 0.0
-        assert true_grid_scores.sum() == 0.0
-        assert pred_grid_scores.sum() == 0.0
+        result = grits_con(true_grid, pred_grid)
+        assert result.true_positive_score == 0.0
+        assert result.true_grid_scores.sum() == 0.0
+        assert result.pred_grid_scores.sum() == 0.0
 
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [["A", "B"], ["C", "D"]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores, _ = grits_con(
-            grid, grid
-        )
-        assert total_match_score == 4.0
-        assert upper_bound == 4.0
-        assert isinstance(true_grid_scores, np.ndarray)
-        assert true_grid_scores.shape == (2, 2)
+        result = grits_con(grid, grid)
+        assert result.true_positive_score == 4.0
+        assert result.true_positive_score_upper_bound == 4.0
+        assert isinstance(result.true_grid_scores, np.ndarray)
+        assert result.true_grid_scores.shape == (2, 2)
 
 
 class TestGritsTop:
@@ -204,25 +198,21 @@ class TestGritsTop:
         """Test main return path with different-shaped grids (bypasses early returns)."""
         true_grid = [[[0, 0, 1, 1]]]
         pred_grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores, _ = grits_top(
-            true_grid, pred_grid
-        )
-        assert isinstance(true_grid_scores, np.ndarray)
-        assert isinstance(pred_grid_scores, np.ndarray)
-        assert true_grid_scores.shape == (1, 1)
-        assert pred_grid_scores.shape == (1, 2)
-        assert total_match_score == 1.0
+        result = grits_top(true_grid, pred_grid)
+        assert isinstance(result.true_grid_scores, np.ndarray)
+        assert isinstance(result.pred_grid_scores, np.ndarray)
+        assert result.true_grid_scores.shape == (1, 1)
+        assert result.pred_grid_scores.shape == (1, 2)
+        assert result.true_positive_score == 1.0
 
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]], [[0, 0, 1, 1], [0, 0, 1, 1]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores, _ = grits_top(
-            grid, grid
-        )
-        assert total_match_score == 4.0
-        assert upper_bound == 4.0
-        assert isinstance(true_grid_scores, np.ndarray)
-        assert true_grid_scores.shape == (2, 2)
+        result = grits_top(grid, grid)
+        assert result.true_positive_score == 4.0
+        assert result.true_positive_score_upper_bound == 4.0
+        assert isinstance(result.true_grid_scores, np.ndarray)
+        assert result.true_grid_scores.shape == (2, 2)
 
 
 class TestHtmlToCells:
@@ -276,21 +266,17 @@ class TestGritsLoc:
     def test_different_shapes(self):
         true_grid = [[[0, 0, 10, 10]]]
         pred_grid = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores, _ = grits_loc(
-            true_grid, pred_grid
-        )
-        assert isinstance(true_grid_scores, np.ndarray)
-        assert true_grid_scores.shape == (1, 1)
-        assert pred_grid_scores.shape == (1, 2)
-        assert total_match_score == 1.0
+        result = grits_loc(true_grid, pred_grid)
+        assert isinstance(result.true_grid_scores, np.ndarray)
+        assert result.true_grid_scores.shape == (1, 1)
+        assert result.pred_grid_scores.shape == (1, 2)
+        assert result.true_positive_score == 1.0
 
     def test_identical_grids(self):
         grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
-        total_match_score, upper_bound, true_grid_scores, pred_grid_scores, _ = grits_loc(
-            grid, grid
-        )
-        assert total_match_score == 4.0
-        assert upper_bound == 4.0
+        result = grits_loc(grid, grid)
+        assert result.true_positive_score == 4.0
+        assert result.true_positive_score_upper_bound == 4.0
 
 
 class TestHungarianGritsLoc:
