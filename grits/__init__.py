@@ -26,7 +26,7 @@ from .grits import (
     iou,
     lcs_similarity,
 )
-from .utils import html_to_cells
+from .utils import html_to_cell_dicts
 
 
 __all__ = [
@@ -42,7 +42,7 @@ __all__ = [
     "cells_to_grid_con",
     "cells_to_grid_loc",
     "cells_to_grid_top",
-    "html_to_cells",
+    "html_to_cell_dicts",
     # GriTS metrics
     "GritsResult",
     "HungarianGritsResult",

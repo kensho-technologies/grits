@@ -8,89 +8,91 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 from .bbox import BBox, get_overlap_area
-from .utils import html_to_cells
+from .utils import html_to_cell_dicts
 
 
-def _cells_to_grid(cells: list[dict[str, Any]], key: str, default_value: Any) -> list[list[Any]]:
+def _cells_to_grid(
+    cell_dicts: list[dict[str, Any]], key: str, default_value: Any
+) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
 
     Args:
-        cells: List of cell dicts with 'row_nums', 'column_nums', and feature keys.
+        cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and feature keys.
         key: The cell feature key to extract ('bbox' for GriTS_Loc, 'cell_text' for GriTS_Con).
         default_value: Value used to initialize grid cells that are not covered by any cell dict.
 
     Returns:
         A 2D list (grid) of cell features indexed by [row][column].
     """
-    if len(cells) == 0:
+    if len(cell_dicts) == 0:
         return [[]]
-    num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
-    num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
+    num_rows = max([max(cell_dict["row_nums"]) for cell_dict in cell_dicts]) + 1
+    num_columns = max([max(cell_dict["column_nums"]) for cell_dict in cell_dicts]) + 1
     cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
-    for cell in cells:
-        for row_num in cell["row_nums"]:
-            for column_num in cell["column_nums"]:
-                cell_grid[row_num][column_num] = cell[key]
+    for cell_dict in cell_dicts:
+        for row_num in cell_dict["row_nums"]:
+            for column_num in cell_dict["column_nums"]:
+                cell_grid[row_num][column_num] = cell_dict[key]
 
     return cell_grid
 
 
-def cells_to_grid_con(cells: list[dict[str, Any]]) -> list[list[Any]]:
+def cells_to_grid_con(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell text, used for computing GriTS_Con.
 
     Args:
-        cells: List of cell dicts with 'row_nums', 'column_nums', and 'cell_text'.
+        cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and 'cell_text'.
 
     Returns:
         A 2D list (grid) of cell text strings indexed by [row][column].
     """
     default_value = ""
-    return _cells_to_grid(cells, key="cell_text", default_value=default_value)
+    return _cells_to_grid(cell_dicts, key="cell_text", default_value=default_value)
 
 
-def cells_to_grid_loc(cells: list[dict[str, Any]]) -> list[list[Any]]:
+def cells_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
 
     Args:
-        cells: List of cell dicts with 'row_nums', 'column_nums', and 'bbox'.
+        cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and 'bbox'.
 
     Returns:
         A 2D list (grid) of bounding boxes indexed by [row][column].
     """
     default_value = [0.0, 0.0, 0.0, 0.0]
-    return _cells_to_grid(cells, key="bbox", default_value=default_value)
+    return _cells_to_grid(cell_dicts, key="bbox", default_value=default_value)
 
 
-def cells_to_grid_top(cells: list[dict[str, Any]]) -> list[list[Any]]:
+def cells_to_grid_top(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
 
     Note: This function was previously known as cells_to_relspan_grid().
 
     Args:
-        cells: List of cell dicts with 'row_nums' and 'column_nums'.
+        cell_dicts: List of cell dicts with 'row_nums' and 'column_nums'.
 
     Returns:
         A 2D list (grid) of relative span values indexed by [row][column].
     """
-    if len(cells) == 0:
+    if len(cell_dicts) == 0:
         return [[]]
-    num_rows = max([max(cell["row_nums"]) for cell in cells]) + 1
-    num_columns = max([max(cell["column_nums"]) for cell in cells]) + 1
+    num_rows = max([max(cell_dict["row_nums"]) for cell_dict in cell_dicts]) + 1
+    num_columns = max([max(cell_dict["column_nums"]) for cell_dict in cell_dicts]) + 1
 
     # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
     # This handles cases where HTML tables have missing cells
     default_value = [0, 0, 1, 1]
     cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
 
-    for cell in cells:
-        min_row_num = min(cell["row_nums"])
-        min_column_num = min(cell["column_nums"])
-        max_row_num = max(cell["row_nums"]) + 1
-        max_column_num = max(cell["column_nums"]) + 1
-        for row_num in cell["row_nums"]:
-            for column_num in cell["column_nums"]:
+    for cell_dict in cell_dicts:
+        min_row_num = min(cell_dict["row_nums"])
+        min_column_num = min(cell_dict["column_nums"])
+        max_row_num = max(cell_dict["row_nums"]) + 1
+        max_column_num = max(cell_dict["column_nums"]) + 1
+        for row_num in cell_dict["row_nums"]:
+            for column_num in cell_dict["column_nums"]:
                 cell_grid[row_num][column_num] = [
                     min_column_num - column_num,
                     min_row_num - row_num,
@@ -910,34 +912,34 @@ class MultiGritsEvaluator:
         true_grids_con = []
         true_grids_top = []
         for true_html in true_htmls:
-            true_cells = html_to_cells(true_html)
-            if true_cells is None:
+            true_cell_dicts = html_to_cell_dicts(true_html)
+            if true_cell_dicts is None:
                 raise ValueError(f"Failed to parse true_html: {true_html!r}")
-            true_grids_con.append(cells_to_grid_con(true_cells))
-            true_grids_top.append(cells_to_grid_top(true_cells))
+            true_grids_con.append(cells_to_grid_con(true_cell_dicts))
+            true_grids_top.append(cells_to_grid_top(true_cell_dicts))
 
         pred_grids_con = []
         pred_grids_top = []
         for pred_html in pred_htmls:
-            pred_cells = html_to_cells(pred_html)
-            if pred_cells is None:
+            pred_cell_dicts = html_to_cell_dicts(pred_html)
+            if pred_cell_dicts is None:
                 raise ValueError(f"Failed to parse pred_html: {pred_html!r}")
-            pred_grids_con.append(cells_to_grid_con(pred_cells))
-            pred_grids_top.append(cells_to_grid_top(pred_cells))
+            pred_grids_con.append(cells_to_grid_con(pred_cell_dicts))
+            pred_grids_top.append(cells_to_grid_top(pred_cell_dicts))
 
         self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
         self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
 
-    def eval_table_cells(
+    def eval_table_cell_dicts(
         self,
-        true_cells: list[list[dict[str, Any]]],
-        pred_cells: list[list[dict[str, Any]]],
+        true_cell_dicts: list[list[dict[str, Any]]],
+        pred_cell_dicts: list[list[dict[str, Any]]],
     ) -> None:
-        """Convert table cells to grids and evaluate all three metrics (con, loc, top).
+        """Convert table cell dicts to grids and evaluate all three metrics (con, loc, top).
 
         Args:
-            true_cells: A list of lists of cell dicts, one list per ground truth table.
-            pred_cells: A list of lists of cell dicts, one list per predicted table.
+            true_cell_dicts: A list of lists of cell dicts, one list per ground truth table.
+            pred_cell_dicts: A list of lists of cell dicts, one list per predicted table.
 
         Raises:
             ValueError: If the evaluator is not tracking all three metrics.
@@ -945,24 +947,24 @@ class MultiGritsEvaluator:
         missing = {"con", "loc", "top"} - set(self._evaluators)
         if missing:
             raise ValueError(
-                f"eval_table_cells requires 'con', 'loc', and 'top' metrics, but missing: {missing}"
+                f"eval_table_cell_dicts requires 'con', 'loc', and 'top' metrics, but missing: {missing}"
             )
 
         true_grids_con = []
         true_grids_loc = []
         true_grids_top = []
-        for cells in true_cells:
-            true_grids_con.append(cells_to_grid_con(cells))
-            true_grids_loc.append(cells_to_grid_loc(cells))
-            true_grids_top.append(cells_to_grid_top(cells))
+        for cell_dicts in true_cell_dicts:
+            true_grids_con.append(cells_to_grid_con(cell_dicts))
+            true_grids_loc.append(cells_to_grid_loc(cell_dicts))
+            true_grids_top.append(cells_to_grid_top(cell_dicts))
 
         pred_grids_con = []
         pred_grids_loc = []
         pred_grids_top = []
-        for cells in pred_cells:
-            pred_grids_con.append(cells_to_grid_con(cells))
-            pred_grids_loc.append(cells_to_grid_loc(cells))
-            pred_grids_top.append(cells_to_grid_top(cells))
+        for cell_dicts in pred_cell_dicts:
+            pred_grids_con.append(cells_to_grid_con(cell_dicts))
+            pred_grids_loc.append(cells_to_grid_loc(cell_dicts))
+            pred_grids_top.append(cells_to_grid_top(cell_dicts))
 
         self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
         self._evaluators["loc"].eval_sample(true_grids_loc, pred_grids_loc)

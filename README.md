@@ -136,11 +136,11 @@ print(f"GriTS_Con: {results['grits_con']:.4f}") # GriTS_Con: 0.8750
 ### Converting table formats, from HTML tables to grids
 
 ```python
-from grits import html_to_cells, cells_to_grid_con, cells_to_grid_top
+from grits import html_to_cell_dicts, cells_to_grid_con, cells_to_grid_top
 
-cells = html_to_cells("<table><tr><td>A</td><td>B</td></tr></table>")
-grid_con = cells_to_grid_con(cells)
-grid_top = cells_to_grid_top(cells)
+cell_dicts = html_to_cell_dicts("<table><tr><td>A</td><td>B</td></tr></table>")
+grid_con = cells_to_grid_con(cell_dicts)
+grid_top = cells_to_grid_top(cell_dicts)
 
 print(grid_con) # [['A', 'B']]
 print(grid_top) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
