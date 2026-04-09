@@ -752,6 +752,7 @@ class GritsEvaluator:
         self.num_true_grids: list[int] = []
         self.num_pred_grids: list[int] = []
         self.num_exact_grid_matches: list[int] = []
+        self.num_exact_cell_matches: list[int] = []
 
     def append_result(
         self, true_positive_score: float, num_true_cells: int, num_pred_cells: int
@@ -775,15 +776,18 @@ class GritsEvaluator:
             pred_grids = [pred_grids]
         result = self._grits_function(true_grids, pred_grids)
         true_positive_score = result[0]
+        true_grid_scores = result[2]
         num_exact_grid_matches = result[6]
         num_true_cells = sum([len(true_grid) * _get_n_cols(true_grid) for true_grid in true_grids])
         num_pred_cells = sum([len(pred_grid) * _get_n_cols(pred_grid) for pred_grid in pred_grids])
+        num_exact_cell_matches = sum(int((scores == 1).sum()) for scores in true_grid_scores)
         self.true_positive_scores.append(true_positive_score)
         self.num_true_cells.append(num_true_cells)
         self.num_pred_cells.append(num_pred_cells)
         self.num_true_grids.append(len(true_grids))
         self.num_pred_grids.append(len(pred_grids))
         self.num_exact_grid_matches.append(num_exact_grid_matches)
+        self.num_exact_cell_matches.append(num_exact_cell_matches)
 
     def compute_grits(self) -> dict[str, float]:
         """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
@@ -798,7 +802,12 @@ class GritsEvaluator:
         f1, precision, recall = compute_fscore(
             total_true_positive_score, total_num_true, total_num_positives
         )
-        exact_match_accuracy = (
+        cell_exact_match_accuracy = (
+            sum(self.num_exact_cell_matches) / total_num_true
+            if self.num_exact_cell_matches
+            else 0.0
+        )
+        grid_exact_match_accuracy = (
             sum(self.num_exact_grid_matches) / sum(self.num_true_grids)
             if self.num_exact_grid_matches
             else 0.0
@@ -808,7 +817,8 @@ class GritsEvaluator:
             f"grits_{m}": f1,
             f"grits_{m}_precision": precision,
             f"grits_{m}_recall": recall,
-            f"grits_{m}_exact_match_accuracy": exact_match_accuracy,
+            f"grits_{m}_cell_exact_match_accuracy": cell_exact_match_accuracy,
+            f"grits_{m}_grid_exact_match_accuracy": grid_exact_match_accuracy,
         }
 
     def compute_avg_grits(self) -> dict[str, float]:
@@ -816,23 +826,26 @@ class GritsEvaluator:
 
         Returns:
             Dict with keys avg_grits_METRIC, avg_grits_METRIC_precision,
-            avg_grits_METRIC_recall, and avg_grits_METRIC_exact_match_accuracy.
+            avg_grits_METRIC_recall, and avg_grits_METRIC_grid_exact_match_accuracy.
         """
         f1s = []
         precisions = []
         recalls = []
-        exact_match_accuracies = []
+        cell_exact_match_accuracies = []
+        grid_exact_match_accuracies = []
         for (
             true_positive_score,
             num_true_cells,
             num_positive,
             num_true_grids,
+            exact_cell_matches,
             exact_grid_matches,
         ) in zip(
             self.true_positive_scores,
             self.num_true_cells,
             self.num_pred_cells,
             self.num_true_grids,
+            self.num_exact_cell_matches,
             self.num_exact_grid_matches,
         ):
             f1, precision, recall = compute_fscore(
@@ -841,14 +854,17 @@ class GritsEvaluator:
             f1s.append(f1)
             recalls.append(recall)
             precisions.append(precision)
-            exact_match_accuracies.append(exact_grid_matches / num_true_grids)
+            cell_exact_match_accuracies.append(exact_cell_matches / num_true_cells)
+            grid_exact_match_accuracies.append(exact_grid_matches / num_true_grids)
         m = self._metric
         return {
             f"avg_grits_{m}": sum(f1s) / len(f1s),
             f"avg_grits_{m}_precision": sum(precisions) / len(precisions),
             f"avg_grits_{m}_recall": sum(recalls) / len(recalls),
-            f"avg_grits_{m}_exact_match_accuracy": sum(exact_match_accuracies)
-            / len(exact_match_accuracies),
+            f"avg_grits_{m}_cell_exact_match_accuracy": sum(cell_exact_match_accuracies)
+            / len(cell_exact_match_accuracies),
+            f"avg_grits_{m}_grid_exact_match_accuracy": sum(grid_exact_match_accuracies)
+            / len(grid_exact_match_accuracies),
         }
 
 
