@@ -880,15 +880,17 @@ class MultiGritsEvaluator:
         for metric, evaluator in self._evaluators.items():
             evaluator.eval_sample(true_grids[metric], pred_grids[metric])
 
-    def eval_html(self, true_html: str, pred_html: str) -> None:
+    def eval_html(
+        self, true_htmls: str | list[str], pred_htmls: str | list[str]
+    ) -> None:
         """Parse HTML tables and evaluate the con and top metrics.
 
         Args:
-            true_html: HTML string of the ground truth table.
-            pred_html: HTML string of the predicted table.
+            true_htmls: HTML string or list of HTML strings of ground truth tables.
+            pred_htmls: HTML string or list of HTML strings of predicted tables.
 
         Raises:
-            ValueError: If either HTML string cannot be parsed, or if the evaluator
+            ValueError: If any HTML string cannot be parsed, or if the evaluator
                 is not tracking both "con" and "top" metrics.
         """
         missing = {"con", "top"} - set(self._evaluators)
@@ -897,23 +899,31 @@ class MultiGritsEvaluator:
                 f"eval_html requires both 'con' and 'top' metrics, but missing: {missing}"
             )
 
-        true_cells = html_to_cells(true_html)
-        pred_cells = html_to_cells(pred_html)
-        if true_cells is None:
-            raise ValueError("Failed to parse true_html")
-        if pred_cells is None:
-            raise ValueError("Failed to parse pred_html")
+        if isinstance(true_htmls, str):
+            true_htmls = [true_htmls]
+        if isinstance(pred_htmls, str):
+            pred_htmls = [pred_htmls]
 
-        true_grids: dict[str, list] = {
-            "con": [cells_to_grid_con(true_cells)],
-            "top": [cells_to_grid_top(true_cells)],
-        }
-        pred_grids: dict[str, list] = {
-            "con": [cells_to_grid_con(pred_cells)],
-            "top": [cells_to_grid_top(pred_cells)],
-        }
-        for metric in ("con", "top"):
-            self._evaluators[metric].eval_sample(true_grids[metric], pred_grids[metric])
+        true_grids_con = []
+        true_grids_top = []
+        for true_html in true_htmls:
+            true_cells = html_to_cells(true_html)
+            if true_cells is None:
+                raise ValueError(f"Failed to parse true_html: {true_html!r}")
+            true_grids_con.append(cells_to_grid_con(true_cells))
+            true_grids_top.append(cells_to_grid_top(true_cells))
+
+        pred_grids_con = []
+        pred_grids_top = []
+        for pred_html in pred_htmls:
+            pred_cells = html_to_cells(pred_html)
+            if pred_cells is None:
+                raise ValueError(f"Failed to parse pred_html: {pred_html!r}")
+            pred_grids_con.append(cells_to_grid_con(pred_cells))
+            pred_grids_top.append(cells_to_grid_top(pred_cells))
+
+        self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
+        self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
 
     def append_result(
         self, true_positive_scores: dict[str, float], num_true_cells: int, num_pred_cells: int

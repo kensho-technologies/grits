@@ -523,6 +523,38 @@ class TestMultiGritsEvaluator:
         with pytest.raises(ValueError, match="Failed to parse pred_html"):
             evaluator.eval_html("<table><tr><td>A</td></tr></table>", "not valid html<><<")
 
+    def test_eval_html_list_perfect_score(self):
+        html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
+        html_b = "<table><tr><td>X</td><td>Y</td></tr></table>"
+        evaluator = MultiGritsEvaluator()
+        evaluator.eval_html([html_a, html_b], [html_a, html_b])
+        results = evaluator.compute_grits()
+        for metric in ("con", "top"):
+            assert results[f"grits_{metric}"] == 1.0
+
+    def test_eval_html_list_hungarian_matching(self):
+        html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
+        html_b = "<table><tr><td>X</td><td>Y</td></tr></table>"
+        evaluator = MultiGritsEvaluator()
+        # Swapped order — Hungarian matching should pair them optimally
+        evaluator.eval_html([html_a, html_b], [html_b, html_a])
+        results = evaluator.compute_grits()
+        for metric in ("con", "top"):
+            assert results[f"grits_{metric}"] == 1.0
+
+    def test_eval_html_list_invalid_raises(self):
+        evaluator = MultiGritsEvaluator()
+        with pytest.raises(ValueError, match="Failed to parse true_html"):
+            evaluator.eval_html(
+                ["<table><tr><td>A</td></tr></table>", "not valid<<>"],
+                ["<table><tr><td>A</td></tr></table>"],
+            )
+        with pytest.raises(ValueError, match="Failed to parse pred_html"):
+            evaluator.eval_html(
+                ["<table><tr><td>A</td></tr></table>"],
+                ["not valid<<>"],
+            )
+
     def test_eval_html_missing_metric_raises(self):
         evaluator = MultiGritsEvaluator(metrics=["con"])
         with pytest.raises(ValueError, match="eval_html requires both"):
