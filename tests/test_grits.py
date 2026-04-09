@@ -296,44 +296,40 @@ class TestGritsLoc:
 class TestHungarianGritsLoc:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
-        tp_score, upper_bound, true_grid_scores, pred_grid_scores, _, _, _ = hungarian_grits_loc(
-            [grid], [grid]
-        )
-        assert tp_score == 4.0
-        assert upper_bound == 4.0
+        result = hungarian_grits_loc([grid], [grid])
+        assert result.true_positive_score == 4.0
+        assert result.true_positive_score_upper_bound == 4.0
 
     def test_multiple_grids(self):
         grid_a = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
         grid_b = [[[50, 50, 60, 60], [60, 50, 70, 60]]]
-        tp_score, _, _, _, _, _, _ = hungarian_grits_loc([grid_a, grid_b], [grid_b, grid_a])
+        result = hungarian_grits_loc([grid_a, grid_b], [grid_b, grid_a])
         # Hungarian matching should pair them optimally: a-a and b-b
-        assert tp_score == 4.0
+        assert result.true_positive_score == 4.0
 
 
 class TestHungarianGritsCon:
     def test_single_grid_pair(self):
         true_grids = [np.array([["A", "B"], ["C", "D"]], dtype=object)]
         pred_grids = [np.array([["A", "B"], ["C", "D"]], dtype=object)]
-        tp_score, upper_bound, true_grid_scores, pred_grid_scores, _, _, _ = hungarian_grits_con(
-            true_grids, pred_grids
-        )
-        assert tp_score == 4.0
+        result = hungarian_grits_con(true_grids, pred_grids)
+        assert result.true_positive_score == 4.0
 
     def test_multiple_grids(self):
         grid_a = np.array([["A", "B"]], dtype=object)
         grid_b = np.array([["X", "Y"]], dtype=object)
         true_grids = [grid_a, grid_b]
         pred_grids = [grid_b, grid_a]
-        tp_score, _, _, _, _, _, _ = hungarian_grits_con(true_grids, pred_grids)
+        result = hungarian_grits_con(true_grids, pred_grids)
         # Hungarian matching should pair them optimally: a-a and b-b
-        assert tp_score == 4.0
+        assert result.true_positive_score == 4.0
 
 
 class TestHungarianGritsTop:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
-        tp_score, _, _, _, _, _, _ = hungarian_grits_top([grid], [grid])
-        assert tp_score == 2.0
+        result = hungarian_grits_top([grid], [grid])
+        assert result.true_positive_score == 2.0
 
 
 class TestGritsEvaluator:

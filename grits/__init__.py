@@ -10,6 +10,7 @@ from .bbox import (
 )
 from .grits import (
     GritsEvaluator,
+    HungarianGritsResult,
     MultiGritsEvaluator,
     cells_to_grid_con,
     cells_to_grid_loc,
@@ -42,6 +43,7 @@ __all__ = [
     "cells_to_grid_top",
     "html_to_cells",
     # GriTS metrics
+    "HungarianGritsResult",
     "grits_con",
     "grits_loc",
     "grits_top",

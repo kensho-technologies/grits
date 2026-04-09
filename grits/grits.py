@@ -1,4 +1,5 @@
 # Copyright 2025-present Kensho Technologies, LLC.
+import dataclasses
 from difflib import SequenceMatcher
 import itertools
 from typing import Any, Callable
@@ -604,9 +605,22 @@ def grits_con(
     )
 
 
+@dataclasses.dataclass(frozen=True)
+class HungarianGritsResult:
+    """Result of computing GriTS metrics across multiple grids using Hungarian matching."""
+
+    true_positive_score: float
+    true_positive_score_upper_bound: float
+    true_grid_scores: np.ndarray
+    pred_grid_scores: np.ndarray
+    matched_true_indices: list[int]
+    matched_pred_indices: list[int]
+    num_exact_grid_matches: int
+
+
 def _hungarian_grits(
     true_grids: list, pred_grids: list, grits_function: Callable
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
+) -> HungarianGritsResult:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Uses the Hungarian algorithm to find the best match between lists of true and predicted grids, and computes the true positive score for the matched pairs.
@@ -617,9 +631,7 @@ def _hungarian_grits(
         grits_function: Scoring function to compare a pair of grids (e.g. grits_con, grits_top, or grits_loc)
 
     Returns:
-        Tuple of (true_positive_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
-        num_exact_grid_matches).
+        HungarianGritsResult with the matching results.
     """
     num_true_grids = len(true_grids)
     num_pred_grids = len(pred_grids)
@@ -661,20 +673,20 @@ def _hungarian_grits(
     true_positive_score = float(true_positive_scores_per_grid.sum())
     true_positive_score_upper_bound = float(true_positive_scores_upper_bound.sum())
 
-    return (
-        true_positive_score,
-        true_positive_score_upper_bound,
-        true_grid_scores,
-        pred_grid_scores,
-        list(matched_true_indices),
-        list(matched_pred_indices),
-        num_exact_grid_matches,
+    return HungarianGritsResult(
+        true_positive_score=true_positive_score,
+        true_positive_score_upper_bound=true_positive_score_upper_bound,
+        true_grid_scores=true_grid_scores,
+        pred_grid_scores=pred_grid_scores,
+        matched_true_indices=list(matched_true_indices),
+        matched_pred_indices=list(matched_pred_indices),
+        num_exact_grid_matches=num_exact_grid_matches,
     )
 
 
 def hungarian_grits_top(
     true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
+) -> HungarianGritsResult:
     """Compute GriTS_Top metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -682,16 +694,14 @@ def hungarian_grits_top(
         pred_grids_top: List of predicted relative span grids
 
     Returns:
-        Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
-        num_exact_grid_matches).
+        HungarianGritsResult with the matching results.
     """
     return _hungarian_grits(true_grids_top, pred_grids_top, grits_top)
 
 
 def hungarian_grits_con(
     true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
+) -> HungarianGritsResult:
     """Compute GriTS_Con metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -699,9 +709,7 @@ def hungarian_grits_con(
         pred_grids_con: List of predicted text content grids
 
     Returns:
-        Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
-        num_exact_grid_matches).
+        HungarianGritsResult with the matching results.
     """
     return _hungarian_grits(true_grids_con, pred_grids_con, grits_con)
 
@@ -709,7 +717,7 @@ def hungarian_grits_con(
 def hungarian_grits_loc(
     true_grids_loc: list[list[list[list[int | float]]]],
     pred_grids_loc: list[list[list[list[int | float]]]],
-) -> tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]:
+) -> HungarianGritsResult:
     """Compute GriTS_Loc metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -717,9 +725,7 @@ def hungarian_grits_loc(
         pred_grids_loc: List of predicted bounding box grids
 
     Returns:
-        Tuple of (true_positive_cell_score, true_positive_score_upper_bound,
-        true_grid_scores, pred_grid_scores, matched_true_indices, matched_pred_indices,
-        num_exact_grid_matches).
+        HungarianGritsResult with the matching results.
     """
     return _hungarian_grits(true_grids_loc, pred_grids_loc, grits_loc)
 
@@ -727,12 +733,7 @@ def hungarian_grits_loc(
 class GritsEvaluator:
     """Accumulates results from multiple GriTS evaluation calls and computes aggregate metrics."""
 
-    _METRIC_FUNCTIONS: dict[
-        str,
-        Callable[
-            [list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]
-        ],
-    ] = {
+    _METRIC_FUNCTIONS: dict[str, Callable[[list, list], HungarianGritsResult]] = {
         "con": hungarian_grits_con,
         "loc": hungarian_grits_loc,
         "top": hungarian_grits_top,
@@ -743,9 +744,9 @@ class GritsEvaluator:
         if metric not in self._METRIC_FUNCTIONS:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
         self._metric = metric
-        self._grits_function: Callable[
-            [list, list], tuple[float, float, np.ndarray, np.ndarray, list[int], list[int], int]
-        ] = self._METRIC_FUNCTIONS[metric]
+        self._grits_function: Callable[[list, list], HungarianGritsResult] = self._METRIC_FUNCTIONS[
+            metric
+        ]
         self.true_positive_scores: list[float] = []
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
@@ -761,9 +762,9 @@ class GritsEvaluator:
         if isinstance(pred_grids, np.ndarray):
             pred_grids = [pred_grids]
         result = self._grits_function(true_grids, pred_grids)
-        true_positive_score = result[0]
-        true_grid_scores = result[2]
-        num_exact_grid_matches = result[6]
+        true_positive_score = result.true_positive_score
+        true_grid_scores = result.true_grid_scores
+        num_exact_grid_matches = result.num_exact_grid_matches
         num_true_cells = sum([len(true_grid) * _get_n_cols(true_grid) for true_grid in true_grids])
         num_pred_cells = sum([len(pred_grid) * _get_n_cols(pred_grid) for pred_grid in pred_grids])
         num_exact_cell_matches = sum(int((scores == 1).sum()) for scores in true_grid_scores)
