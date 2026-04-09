@@ -14,7 +14,7 @@ from .utils import html_to_cell_dicts
 def _cell_dicts_to_grid(
     cell_dicts: list[dict[str, Any]], key: str, default_value: Any
 ) -> list[list[Any]]:
-    """Convert from a list of cells to a matrix of grid cell features.
+    """Convert from a list of cell dicts to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
 
@@ -40,7 +40,7 @@ def _cell_dicts_to_grid(
 
 
 def cell_dicts_to_grid_con(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
-    """Convert from a list of cells to a matrix of cell text, used for computing GriTS_Con.
+    """Convert from a list of cell dicts to a matrix of cell text, used for computing GriTS_Con.
 
     Args:
         cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and 'cell_text'.
@@ -53,7 +53,7 @@ def cell_dicts_to_grid_con(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
 
 
 def cell_dicts_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
-    """Convert from a list of cells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
+    """Convert from a list of cell dicts to a matrix of cell bounding boxes, used for computing GriTS_Loc.
 
     Args:
         cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and 'bbox'.
@@ -66,9 +66,7 @@ def cell_dicts_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
 
 
 def cell_dicts_to_grid_top(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
-    """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
-
-    Note: This function was previously known as cells_to_relspan_grid().
+    """Convert from a list of cell dicts to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
 
     Args:
         cell_dicts: List of cell dicts with 'row_nums' and 'column_nums'.
