@@ -11,7 +11,7 @@ from .bbox import BBox, get_overlap_area
 from .utils import html_to_cell_dicts
 
 
-def _cells_to_grid(
+def _cell_dicts_to_grid(
     cell_dicts: list[dict[str, Any]], key: str, default_value: Any
 ) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of grid cell features.
@@ -39,7 +39,7 @@ def _cells_to_grid(
     return cell_grid
 
 
-def cells_to_grid_con(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
+def cell_dicts_to_grid_con(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell text, used for computing GriTS_Con.
 
     Args:
@@ -49,10 +49,10 @@ def cells_to_grid_con(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
         A 2D list (grid) of cell text strings indexed by [row][column].
     """
     default_value = ""
-    return _cells_to_grid(cell_dicts, key="cell_text", default_value=default_value)
+    return _cell_dicts_to_grid(cell_dicts, key="cell_text", default_value=default_value)
 
 
-def cells_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
+def cell_dicts_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
 
     Args:
@@ -62,10 +62,10 @@ def cells_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
         A 2D list (grid) of bounding boxes indexed by [row][column].
     """
     default_value = [0.0, 0.0, 0.0, 0.0]
-    return _cells_to_grid(cell_dicts, key="bbox", default_value=default_value)
+    return _cell_dicts_to_grid(cell_dicts, key="bbox", default_value=default_value)
 
 
-def cells_to_grid_top(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
+def cell_dicts_to_grid_top(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
 
     Note: This function was previously known as cells_to_relspan_grid().
@@ -915,8 +915,8 @@ class MultiGritsEvaluator:
             true_cell_dicts = html_to_cell_dicts(true_html)
             if true_cell_dicts is None:
                 raise ValueError(f"Failed to parse true_html: {true_html!r}")
-            true_grids_con.append(cells_to_grid_con(true_cell_dicts))
-            true_grids_top.append(cells_to_grid_top(true_cell_dicts))
+            true_grids_con.append(cell_dicts_to_grid_con(true_cell_dicts))
+            true_grids_top.append(cell_dicts_to_grid_top(true_cell_dicts))
 
         pred_grids_con = []
         pred_grids_top = []
@@ -924,8 +924,8 @@ class MultiGritsEvaluator:
             pred_cell_dicts = html_to_cell_dicts(pred_html)
             if pred_cell_dicts is None:
                 raise ValueError(f"Failed to parse pred_html: {pred_html!r}")
-            pred_grids_con.append(cells_to_grid_con(pred_cell_dicts))
-            pred_grids_top.append(cells_to_grid_top(pred_cell_dicts))
+            pred_grids_con.append(cell_dicts_to_grid_con(pred_cell_dicts))
+            pred_grids_top.append(cell_dicts_to_grid_top(pred_cell_dicts))
 
         self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
         self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
@@ -954,17 +954,17 @@ class MultiGritsEvaluator:
         true_grids_loc = []
         true_grids_top = []
         for cell_dicts in true_cell_dicts:
-            true_grids_con.append(cells_to_grid_con(cell_dicts))
-            true_grids_loc.append(cells_to_grid_loc(cell_dicts))
-            true_grids_top.append(cells_to_grid_top(cell_dicts))
+            true_grids_con.append(cell_dicts_to_grid_con(cell_dicts))
+            true_grids_loc.append(cell_dicts_to_grid_loc(cell_dicts))
+            true_grids_top.append(cell_dicts_to_grid_top(cell_dicts))
 
         pred_grids_con = []
         pred_grids_loc = []
         pred_grids_top = []
         for cell_dicts in pred_cell_dicts:
-            pred_grids_con.append(cells_to_grid_con(cell_dicts))
-            pred_grids_loc.append(cells_to_grid_loc(cell_dicts))
-            pred_grids_top.append(cells_to_grid_top(cell_dicts))
+            pred_grids_con.append(cell_dicts_to_grid_con(cell_dicts))
+            pred_grids_loc.append(cell_dicts_to_grid_loc(cell_dicts))
+            pred_grids_top.append(cell_dicts_to_grid_top(cell_dicts))
 
         self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
         self._evaluators["loc"].eval_sample(true_grids_loc, pred_grids_loc)

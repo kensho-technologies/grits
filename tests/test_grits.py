@@ -6,9 +6,9 @@ from grits.bbox import BBox
 from grits.grits import (
     GritsEvaluator,
     MultiGritsEvaluator,
-    cells_to_grid_con,
-    cells_to_grid_loc,
-    cells_to_grid_top,
+    cell_dicts_to_grid_con,
+    cell_dicts_to_grid_loc,
+    cell_dicts_to_grid_top,
     compute_fscore,
     grits_con,
     grits_loc,
@@ -34,11 +34,11 @@ def _make_simple_cell_dicts():
 
 class TestCellsToGridCon:
     def test_empty_cells(self):
-        assert cells_to_grid_con([]) == [[]]
+        assert cell_dicts_to_grid_con([]) == [[]]
 
     def test_simple_text_grid(self):
         cell_dicts = _make_simple_cell_dicts()
-        grid = cells_to_grid_con(cell_dicts)
+        grid = cell_dicts_to_grid_con(cell_dicts)
         assert grid == [["A", "B"], ["C", "D"]]
 
     def test_spanning_cell(self):
@@ -47,7 +47,7 @@ class TestCellsToGridCon:
             {"row_nums": [0], "column_nums": [1], "cell_text": "B", "bbox": [10, 0, 20, 10]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
         ]
-        grid = cells_to_grid_con(cell_dicts)
+        grid = cell_dicts_to_grid_con(cell_dicts)
         assert grid == [["span", "B"], ["span", "D"]]
 
     def test_missing_cells(self):
@@ -55,17 +55,17 @@ class TestCellsToGridCon:
             {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 10, 10]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
         ]
-        grid = cells_to_grid_con(cell_dicts)
+        grid = cell_dicts_to_grid_con(cell_dicts)
         assert grid == [["A", ""], ["", "D"]]
 
 
 class TestCellsToGridLoc:
     def test_empty_cells(self):
-        assert cells_to_grid_loc([]) == [[]]
+        assert cell_dicts_to_grid_loc([]) == [[]]
 
     def test_simple_bbox_grid(self):
         cell_dicts = _make_simple_cell_dicts()
-        grid = cells_to_grid_loc(cell_dicts)
+        grid = cell_dicts_to_grid_loc(cell_dicts)
         assert grid == [
             [[0, 0, 10, 10], [10, 0, 20, 10]],
             [[0, 10, 10, 20], [10, 10, 20, 20]],
@@ -76,7 +76,7 @@ class TestCellsToGridLoc:
             {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 10, 10]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
         ]
-        grid = cells_to_grid_loc(cell_dicts)
+        grid = cell_dicts_to_grid_loc(cell_dicts)
         assert grid[0][0] == [0, 0, 10, 10]
         assert grid[0][1] == [0.0, 0.0, 0.0, 0.0]
         assert grid[1][0] == [0.0, 0.0, 0.0, 0.0]
@@ -85,11 +85,11 @@ class TestCellsToGridLoc:
 
 class TestCellsToGridTop:
     def test_empty_cells(self):
-        assert cells_to_grid_top([]) == [[]]
+        assert cell_dicts_to_grid_top([]) == [[]]
 
     def test_non_spanning(self):
         cell_dicts = _make_simple_cell_dicts()
-        grid = cells_to_grid_top(cell_dicts)
+        grid = cell_dicts_to_grid_top(cell_dicts)
         assert grid == [
             [[0, 0, 1, 1], [0, 0, 1, 1]],
             [[0, 0, 1, 1], [0, 0, 1, 1]],
@@ -99,7 +99,7 @@ class TestCellsToGridTop:
         cell_dicts = [
             {"row_nums": [0, 1], "column_nums": [0, 1], "cell_text": "big"},
         ]
-        grid = cells_to_grid_top(cell_dicts)
+        grid = cell_dicts_to_grid_top(cell_dicts)
         # top-left: min_col=0, min_row=0, max_col=2, max_row=2
         assert grid[0][0] == [0, 0, 2, 2]
         # top-right (col=1): min_col - 1 = -1, min_row - 0 = 0, max_col - 1 = 1, max_row - 0 = 2
@@ -112,7 +112,7 @@ class TestCellsToGridTop:
             {"row_nums": [0], "column_nums": [0], "cell_text": "A"},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D"},
         ]
-        grid = cells_to_grid_top(cell_dicts)
+        grid = cell_dicts_to_grid_top(cell_dicts)
         assert grid[0][0] == [0, 0, 1, 1]
         assert grid[0][1] == [0, 0, 1, 1]
         assert grid[1][0] == [0, 0, 1, 1]

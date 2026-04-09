@@ -33,7 +33,7 @@ Requires Python >= 3.10.
 ### Computing GriTS-Con for an individual sample
 
 ```python
-from grits import grits_con, compute_fscore, cells_to_grid_con
+from grits import grits_con, compute_fscore, cell_dicts_to_grid_con
 
 # Define ground-truth and predicted tables as lists of cell dicts
 true_cells = [
@@ -49,8 +49,8 @@ pred_cells = [
     {"row_nums": [1], "column_nums": [1], "cell_text": "90"},
 ]
 
-true_grid_con = cells_to_grid_con(true_cells)
-pred_grid_con = cells_to_grid_con(pred_cells)
+true_grid_con = cell_dicts_to_grid_con(true_cells)
+pred_grid_con = cell_dicts_to_grid_con(pred_cells)
 
 result = grits_con(true_grid_con, pred_grid_con)  # returns a GritsResult
 
@@ -67,7 +67,7 @@ print(f"GriTS_Con: {grits_con_score:.4f}") # GriTS_Con: 0.8750
 Use `GritsEvaluator` to accumulate results across a dataset and compute aggregate metrics:
 
 ```python
-from grits import GritsEvaluator, cells_to_grid_con
+from grits import GritsEvaluator, cell_dicts_to_grid_con
 
 evaluator = GritsEvaluator(metric="con")
 
@@ -85,8 +85,8 @@ pred_cells_1 = [
     {"row_nums": [1], "column_nums": [1], "cell_text": "90"},
 ]
 
-true_grid_con_1 = cells_to_grid_con(true_cells_1)
-pred_grid_con_1 = cells_to_grid_con(pred_cells_1)
+true_grid_con_1 = cell_dicts_to_grid_con(true_cells_1)
+pred_grid_con_1 = cell_dicts_to_grid_con(pred_cells_1)
 evaluator.eval_sample([true_grid_con_1], [pred_grid_con_1])
 
 # Sample 2
@@ -101,8 +101,8 @@ pred_cells_2 = [
     {"row_nums": [0], "column_nums": [1], "cell_text": "Bob"}
 ]
 
-true_grid_con_2 = cells_to_grid_con(true_cells_2)
-pred_grid_con_2 = cells_to_grid_con(pred_cells_2)
+true_grid_con_2 = cell_dicts_to_grid_con(true_cells_2)
+pred_grid_con_2 = cell_dicts_to_grid_con(pred_cells_2)
 evaluator.eval_sample([true_grid_con_2], [pred_grid_con_2])
 
 results = evaluator.compute_grits()           # micro (dict with grits_con, grits_con_precision, etc.)
@@ -136,11 +136,11 @@ print(f"GriTS_Con: {results['grits_con']:.4f}") # GriTS_Con: 0.8750
 ### Converting table formats, from HTML tables to grids
 
 ```python
-from grits import html_to_cell_dicts, cells_to_grid_con, cells_to_grid_top
+from grits import html_to_cell_dicts, cell_dicts_to_grid_con, cell_dicts_to_grid_top
 
 cell_dicts = html_to_cell_dicts("<table><tr><td>A</td><td>B</td></tr></table>")
-grid_con = cells_to_grid_con(cell_dicts)
-grid_top = cells_to_grid_top(cell_dicts)
+grid_con = cell_dicts_to_grid_con(cell_dicts)
+grid_top = cell_dicts_to_grid_top(cell_dicts)
 
 print(grid_con) # [['A', 'B']]
 print(grid_top) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
