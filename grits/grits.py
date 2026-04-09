@@ -928,16 +928,14 @@ class MultiGritsEvaluator:
 
     def eval_table_cells(
         self,
-        true_cells: list[dict[str, Any]] | list[list[dict[str, Any]]],
-        pred_cells: list[dict[str, Any]] | list[list[dict[str, Any]]],
+        true_cells: list[list[dict[str, Any]]],
+        pred_cells: list[list[dict[str, Any]]],
     ) -> None:
         """Convert table cells to grids and evaluate all three metrics (con, loc, top).
 
         Args:
-            true_cells: A list of cell dicts for a single table, or a list of lists
-                of cell dicts for multiple tables.
-            pred_cells: A list of cell dicts for a single table, or a list of lists
-                of cell dicts for multiple tables.
+            true_cells: A list of lists of cell dicts, one list per ground truth table.
+            pred_cells: A list of lists of cell dicts, one list per predicted table.
 
         Raises:
             ValueError: If the evaluator is not tracking all three metrics.
@@ -947,12 +945,6 @@ class MultiGritsEvaluator:
             raise ValueError(
                 f"eval_table_cells requires 'con', 'loc', and 'top' metrics, but missing: {missing}"
             )
-
-        # Normalize single table input to list of tables
-        if true_cells and isinstance(true_cells[0], dict):
-            true_cells = [true_cells]
-        if pred_cells and isinstance(pred_cells[0], dict):
-            pred_cells = [pred_cells]
 
         true_grids_con = []
         true_grids_loc = []

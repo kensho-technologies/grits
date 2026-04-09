@@ -634,7 +634,7 @@ class TestMultiGritsEvaluator:
     def test_eval_table_cells_perfect(self):
         evaluator = MultiGritsEvaluator()
         cells = _make_simple_cells()
-        evaluator.eval_table_cells(cells, cells)
+        evaluator.eval_table_cells([cells], [cells])
         results = evaluator.compute_grits()
         for metric in ("con", "loc", "top"):
             assert results[f"grits_{metric}"] == 1.0
@@ -648,7 +648,7 @@ class TestMultiGritsEvaluator:
             {"row_nums": [1], "column_nums": [0], "cell_text": "Z", "bbox": [0, 10, 10, 20]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "W", "bbox": [10, 10, 20, 20]},
         ]
-        evaluator.eval_table_cells(true_cells, pred_cells)
+        evaluator.eval_table_cells([true_cells], [pred_cells])
         results = evaluator.compute_grits()
         assert results["grits_con"] < 1.0
         assert results["grits_loc"] == 1.0
@@ -675,7 +675,7 @@ class TestMultiGritsEvaluator:
             {"row_nums": [1], "column_nums": [0], "cell_text": "C", "bbox": [1, 11, 10, 20]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [11, 11, 20, 20]},
         ]
-        evaluator.eval_table_cells(true_cells, pred_cells)
+        evaluator.eval_table_cells([true_cells], [pred_cells])
         results = evaluator.compute_grits()
         assert results["grits_con"] == 1.0
         assert results["grits_loc"] == pytest.approx(0.81, abs=1e-4)
@@ -690,7 +690,7 @@ class TestMultiGritsEvaluator:
             {"row_nums": [1], "column_nums": [0], "cell_text": "C", "bbox": [0, 10, 10, 20]},
             {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
         ]
-        evaluator.eval_table_cells(true_cells, pred_cells)
+        evaluator.eval_table_cells([true_cells], [pred_cells])
         results = evaluator.compute_grits()
         assert results["grits_top"] == 0.75
 
@@ -698,7 +698,7 @@ class TestMultiGritsEvaluator:
         evaluator = MultiGritsEvaluator(metrics=["con", "top"])
         cells = _make_simple_cells()
         with pytest.raises(ValueError, match="eval_table_cells requires"):
-            evaluator.eval_table_cells(cells, cells)
+            evaluator.eval_table_cells([cells], [cells])
 
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
