@@ -354,7 +354,7 @@ class GritsResult:
     true_positive_score_upper_bound: float
     true_grid_scores: np.ndarray
     pred_grid_scores: np.ndarray
-    is_exact_match: int
+    is_exact_match: bool
 
 
 def factored_2dmss(
@@ -402,7 +402,7 @@ def factored_2dmss(
             grid_scores[true_row, true_col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
-            is_exact_match = 1 if true_positive_score == num_true_cells == num_pred_cells else 0
+            is_exact_match = true_positive_score == num_true_cells == num_pred_cells
             return GritsResult(
                 true_positive_score=true_positive_score,
                 true_positive_score_upper_bound=true_positive_score,
@@ -445,7 +445,7 @@ def factored_2dmss(
             pred_grid_scores[pred_row, col] = cell_score
             true_positive_score += cell_score
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
-            is_exact_match = 1 if true_positive_score == num_true_cells == num_pred_cells else 0
+            is_exact_match = true_positive_score == num_true_cells == num_pred_cells
             return GritsResult(
                 true_positive_score=true_positive_score,
                 true_positive_score_upper_bound=true_positive_score,
@@ -472,7 +472,7 @@ def factored_2dmss(
             pred_grid_scores[pred_row_num, pred_column_num] = grid_cell_score
             true_positive_score += grid_cell_score
 
-    is_exact_match = 1 if true_positive_score == num_true_cells == num_pred_cells else 0
+    is_exact_match = true_positive_score == num_true_cells == num_pred_cells
     return GritsResult(
         true_positive_score=true_positive_score,
         true_positive_score_upper_bound=true_positive_score_upper_bound,
