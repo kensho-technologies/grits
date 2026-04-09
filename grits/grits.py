@@ -631,7 +631,9 @@ def grits_loc(
     return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
 
 
-def grits_con_matching(true_grid_con: list[list[str]], pred_grid_con: list[list[str]]) -> GritsResult:
+def grits_con_matching(
+    true_grid_con: list[list[str]], pred_grid_con: list[list[str]]
+) -> GritsResult:
     """Compute GriTS_Con given two matrices of cell text strings.
 
     Args:
@@ -741,7 +743,7 @@ def _hungarian_grits_matching(
     )
 
 
-def hungarian_grits_top(
+def hungarian_grits_top_matching(
     true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]
 ) -> HungarianGritsResult:
     """Compute GriTS_Top metrics across multiple grids using Hungarian algorithm for optimal matching.
@@ -756,7 +758,7 @@ def hungarian_grits_top(
     return _hungarian_grits_matching(true_grids_top, pred_grids_top, grits_top_matching)
 
 
-def hungarian_grits_con(
+def hungarian_grits_con_matching(
     true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
 ) -> HungarianGritsResult:
     """Compute GriTS_Con metrics across multiple grids using Hungarian algorithm for optimal matching.
@@ -771,7 +773,7 @@ def hungarian_grits_con(
     return _hungarian_grits_matching(true_grids_con, pred_grids_con, grits_con_matching)
 
 
-def hungarian_grits_loc(
+def hungarian_grits_loc_matching(
     true_grids_loc: list[list[list[list[int | float]]]],
     pred_grids_loc: list[list[list[list[int | float]]]],
 ) -> HungarianGritsResult:
@@ -791,9 +793,9 @@ class GritsEvaluator:
     """Accumulates results from multiple GriTS evaluation calls and computes aggregate metrics."""
 
     _METRIC_FUNCTIONS: dict[str, Callable[[list, list], HungarianGritsResult]] = {
-        "con": hungarian_grits_con,
-        "loc": hungarian_grits_loc,
-        "top": hungarian_grits_top,
+        "con": hungarian_grits_con_matching,
+        "loc": hungarian_grits_loc_matching,
+        "top": hungarian_grits_top_matching,
     }
 
     def __init__(self, metric: str = "con") -> None:

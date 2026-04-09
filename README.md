@@ -151,7 +151,7 @@ print(grid_top) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
 
 These functions return a `GritsResult` dataclass with named fields such as `true_positive_score`, `true_grid_scores`, and `is_exact_match`.
 
-For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con`, `hungarian_grits_top`, and `hungarian_grits_loc`. These return a `HungarianGritsResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
+For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con_matching`, `hungarian_grits_top_matching`, and `hungarian_grits_loc_matching`. These return a `HungarianGritsResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
 
 ## References
 
