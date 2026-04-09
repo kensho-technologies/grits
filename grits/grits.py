@@ -544,7 +544,7 @@ def _convert_grid_elements_to_bbox_and_area(grid: list[list]) -> list[list[tuple
 
 
 def grits_top(
-    true_relative_span_grid: list[list[list[int]]], pred_relative_span_grid: list[list[list[int]]]
+    true_grid_top: list[list[list[int]]], pred_grid_top: list[list[list[int]]]
 ) -> GritsResult:
     """Compute GriTS_Top given two matrices of cell relative spans.
 
@@ -558,54 +558,54 @@ def grits_top(
     Note that for a non-spanning cell this will always be [0, 0, 1, 1].
 
     Args:
-        true_relative_span_grid: Ground truth relative span grid
-        pred_relative_span_grid: Predicted relative span grid
+        true_grid_top: Ground truth relative span grid
+        pred_grid_top: Predicted relative span grid
 
     Returns:
         GritsResult with the scoring results.
     """
     return factored_2dmss(
-        np.array(_convert_grid_elements_to_bbox_and_area(true_relative_span_grid)),
-        np.array(_convert_grid_elements_to_bbox_and_area(pred_relative_span_grid)),
+        np.array(_convert_grid_elements_to_bbox_and_area(true_grid_top)),
+        np.array(_convert_grid_elements_to_bbox_and_area(pred_grid_top)),
         reward_function=iou,
     )
 
 
 def grits_loc(
-    true_bbox_grid: list[list[list[int | float]]], pred_bbox_grid: list[list[list[int | float]]]
+    true_grid_loc: list[list[list[int | float]]], pred_grid_loc: list[list[list[int | float]]]
 ) -> GritsResult:
     """Compute GriTS_Loc given two matrices of cell bounding boxes.
 
     This calculates the spatial location similarity.
 
     Args:
-        true_bbox_grid: Ground truth bounding box grid.
-        pred_bbox_grid: Predicted bounding box grid.
+        true_grid_loc: Ground truth bounding box grid.
+        pred_grid_loc: Predicted bounding box grid.
 
     Returns:
         GritsResult with the scoring results.
     """
 
     return factored_2dmss(
-        np.array(_convert_grid_elements_to_bbox_and_area(true_bbox_grid)),
-        np.array(_convert_grid_elements_to_bbox_and_area(pred_bbox_grid)),
+        np.array(_convert_grid_elements_to_bbox_and_area(true_grid_loc)),
+        np.array(_convert_grid_elements_to_bbox_and_area(pred_grid_loc)),
         reward_function=iou,
     )
 
 
-def grits_con(true_text_grid: list[list[str]], pred_text_grid: list[list[str]]) -> GritsResult:
+def grits_con(true_grid_con: list[list[str]], pred_grid_con: list[list[str]]) -> GritsResult:
     """Compute GriTS_Con given two matrices of cell text strings.
 
     Args:
-        true_text_grid: Ground truth text grid
-        pred_text_grid: Predicted text grid
+        true_grid_con: Ground truth text grid
+        pred_grid_con: Predicted text grid
 
     Returns:
         GritsResult with the scoring results.
     """
     return factored_2dmss(
-        np.array(true_text_grid, dtype=object),
-        np.array(pred_text_grid, dtype=object),
+        np.array(true_grid_con, dtype=object),
+        np.array(pred_grid_con, dtype=object),
         reward_function=lcs_similarity,
     )
 
