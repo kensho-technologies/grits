@@ -545,7 +545,7 @@ def _convert_grid_elements_to_bbox_and_area(grid: list[list]) -> list[list[tuple
     return new_grid
 
 
-def grits_top(
+def grits_top_matching(
     true_grid_top: list[list[list[int]]], pred_grid_top: list[list[list[int]]]
 ) -> GritsResult:
     """Compute GriTS_Top given two matrices of cell relative spans.
@@ -573,7 +573,7 @@ def grits_top(
     )
 
 
-def grits_loc(
+def grits_loc_matching(
     true_grid_loc: list[list[list[int | float]]], pred_grid_loc: list[list[list[int | float]]]
 ) -> GritsResult:
     """Compute GriTS_Loc given two matrices of cell bounding boxes.
@@ -595,7 +595,7 @@ def grits_loc(
     )
 
 
-def grits_con(true_grid_con: list[list[str]], pred_grid_con: list[list[str]]) -> GritsResult:
+def grits_con_matching(true_grid_con: list[list[str]], pred_grid_con: list[list[str]]) -> GritsResult:
     """Compute GriTS_Con given two matrices of cell text strings.
 
     Args:
@@ -625,7 +625,7 @@ class HungarianGritsResult:
     num_exact_grid_matches: int
 
 
-def _hungarian_grits(
+def _hungarian_grits_matching(
     true_grids: list, pred_grids: list, grits_function: Callable
 ) -> HungarianGritsResult:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
@@ -635,7 +635,7 @@ def _hungarian_grits(
     Args:
         true_grids: List of ground truth grids
         pred_grids: List of predicted grids
-        grits_function: Scoring function to compare a pair of grids (e.g. grits_con, grits_top, or grits_loc)
+        grits_function: Scoring function to compare a pair of grids (e.g. grits_con_matching, grits_top_matching, or grits_loc_matching)
 
     Returns:
         HungarianGritsResult with the matching results.
@@ -699,7 +699,7 @@ def hungarian_grits_top(
     Returns:
         HungarianGritsResult with the matching results.
     """
-    return _hungarian_grits(true_grids_top, pred_grids_top, grits_top)
+    return _hungarian_grits_matching(true_grids_top, pred_grids_top, grits_top_matching)
 
 
 def hungarian_grits_con(
@@ -714,7 +714,7 @@ def hungarian_grits_con(
     Returns:
         HungarianGritsResult with the matching results.
     """
-    return _hungarian_grits(true_grids_con, pred_grids_con, grits_con)
+    return _hungarian_grits_matching(true_grids_con, pred_grids_con, grits_con_matching)
 
 
 def hungarian_grits_loc(
@@ -730,7 +730,7 @@ def hungarian_grits_loc(
     Returns:
         HungarianGritsResult with the matching results.
     """
-    return _hungarian_grits(true_grids_loc, pred_grids_loc, grits_loc)
+    return _hungarian_grits_matching(true_grids_loc, pred_grids_loc, grits_loc_matching)
 
 
 class GritsEvaluator:
