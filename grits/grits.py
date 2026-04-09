@@ -926,6 +926,54 @@ class MultiGritsEvaluator:
         self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
         self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
 
+    def eval_table_cells(
+        self,
+        true_cells: list[dict[str, Any]] | list[list[dict[str, Any]]],
+        pred_cells: list[dict[str, Any]] | list[list[dict[str, Any]]],
+    ) -> None:
+        """Convert table cells to grids and evaluate all three metrics (con, loc, top).
+
+        Args:
+            true_cells: A list of cell dicts for a single table, or a list of lists
+                of cell dicts for multiple tables.
+            pred_cells: A list of cell dicts for a single table, or a list of lists
+                of cell dicts for multiple tables.
+
+        Raises:
+            ValueError: If the evaluator is not tracking all three metrics.
+        """
+        missing = {"con", "loc", "top"} - set(self._evaluators)
+        if missing:
+            raise ValueError(
+                f"eval_table_cells requires 'con', 'loc', and 'top' metrics, but missing: {missing}"
+            )
+
+        # Normalize single table input to list of tables
+        if true_cells and isinstance(true_cells[0], dict):
+            true_cells = [true_cells]
+        if pred_cells and isinstance(pred_cells[0], dict):
+            pred_cells = [pred_cells]
+
+        true_grids_con = []
+        true_grids_loc = []
+        true_grids_top = []
+        for cells in true_cells:
+            true_grids_con.append(cells_to_grid_con(cells))
+            true_grids_loc.append(cells_to_grid_loc(cells))
+            true_grids_top.append(cells_to_grid_top(cells))
+
+        pred_grids_con = []
+        pred_grids_loc = []
+        pred_grids_top = []
+        for cells in pred_cells:
+            pred_grids_con.append(cells_to_grid_con(cells))
+            pred_grids_loc.append(cells_to_grid_loc(cells))
+            pred_grids_top.append(cells_to_grid_top(cells))
+
+        self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
+        self._evaluators["loc"].eval_sample(true_grids_loc, pred_grids_loc)
+        self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
+
     def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.
 
