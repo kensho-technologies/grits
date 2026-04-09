@@ -651,15 +651,15 @@ def _hungarian_grits(
 
     for true_idx, true_grid in enumerate(true_grids):
         for pred_idx, pred_grid in enumerate(pred_grids):
-            cell_result = grits_function(true_grid, pred_grid)
+            grits_result = grits_function(true_grid, pred_grid)
 
-            true_grid_scores_matrix[true_idx, pred_idx] = cell_result.true_grid_scores
-            pred_grid_scores_matrix[true_idx, pred_idx] = cell_result.pred_grid_scores
-            score_matrix[true_idx, pred_idx] = cell_result.true_positive_score
+            true_grid_scores_matrix[true_idx, pred_idx] = grits_result.true_grid_scores
+            pred_grid_scores_matrix[true_idx, pred_idx] = grits_result.pred_grid_scores
+            score_matrix[true_idx, pred_idx] = grits_result.true_positive_score
             score_upper_bound_matrix[true_idx, pred_idx] = (
-                cell_result.true_positive_score_upper_bound
+                grits_result.true_positive_score_upper_bound
             )
-            is_exact_match_matrix[true_idx, pred_idx] = cell_result.is_exact_match
+            is_exact_match_matrix[true_idx, pred_idx] = grits_result.is_exact_match
 
     matched_true_indices, matched_pred_indices = linear_sum_assignment(score_matrix, maximize=True)
 
