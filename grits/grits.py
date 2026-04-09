@@ -780,7 +780,7 @@ class GritsEvaluator:
 
         Returns:
             Dict with keys grits_METRIC, grits_METRIC_precision, grits_METRIC_recall,
-            and grits_METRIC_exact_match_accuracy.
+            grits_METRIC_cell_exact_match_accuracy, and grits_METRIC_grid_exact_match_accuracy.
         """
         total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
@@ -812,7 +812,8 @@ class GritsEvaluator:
 
         Returns:
             Dict with keys avg_grits_METRIC, avg_grits_METRIC_precision,
-            avg_grits_METRIC_recall, and avg_grits_METRIC_grid_exact_match_accuracy.
+            avg_grits_METRIC_recall, avg_grits_METRIC_cell_exact_match_accuracy,
+            and avg_grits_METRIC_grid_exact_match_accuracy.
         """
         f1s = []
         precisions = []
