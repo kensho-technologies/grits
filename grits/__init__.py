@@ -10,9 +10,12 @@ from .bbox import (
 )
 from .grits import (
     GritsEvaluator,
-    cells_to_grid_con,
-    cells_to_grid_loc,
-    cells_to_grid_top,
+    GritsResult,
+    HungarianGritsResult,
+    MultiGritsEvaluator,
+    cell_dicts_to_grid_con,
+    cell_dicts_to_grid_loc,
+    cell_dicts_to_grid_top,
     compute_fscore,
     grits_con,
     grits_loc,
@@ -23,7 +26,7 @@ from .grits import (
     iou,
     lcs_similarity,
 )
-from .utils import html_to_cells
+from .utils import html_to_cell_dicts
 
 
 __all__ = [
@@ -36,11 +39,13 @@ __all__ = [
     "is_horizontal_overlap",
     "is_vertical_overlap",
     # grid conversion
-    "cells_to_grid_con",
-    "cells_to_grid_loc",
-    "cells_to_grid_top",
-    "html_to_cells",
+    "cell_dicts_to_grid_con",
+    "cell_dicts_to_grid_loc",
+    "cell_dicts_to_grid_top",
+    "html_to_cell_dicts",
     # GriTS metrics
+    "GritsResult",
+    "HungarianGritsResult",
     "grits_con",
     "grits_loc",
     "grits_top",
@@ -48,6 +53,7 @@ __all__ = [
     "hungarian_grits_loc",
     "hungarian_grits_top",
     "GritsEvaluator",
+    "MultiGritsEvaluator",
     # utilities
     "compute_fscore",
     "iou",

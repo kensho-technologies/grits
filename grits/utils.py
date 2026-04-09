@@ -4,7 +4,7 @@ from typing import Any
 import xml.etree.ElementTree as ET
 
 
-def html_to_cells(table_html: str) -> list[dict[str, Any]] | None:
+def html_to_cell_dicts(table_html: str) -> list[dict[str, Any]] | None:
     """Parse an HTML representation of a table into a list of cells.
 
     Args:
