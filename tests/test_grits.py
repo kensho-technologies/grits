@@ -543,13 +543,6 @@ class TestMultiGritsEvaluator:
             assert results[f"grits_{metric}_precision"] == 1.0
             assert results[f"grits_{metric}_recall"] == 1.0
 
-    def test_append_result(self):
-        evaluator = MultiGritsEvaluator(metrics=["con", "loc"])
-        evaluator.append_result({"con": 4.0, "loc": 4.0}, num_true_cells=4, num_pred_cells=4)
-        results = evaluator.compute_grits()
-        for metric in ("con", "loc"):
-            assert results[f"grits_{metric}"] == 1.0
-
     def test_compute_avg_grits(self):
         evaluator = MultiGritsEvaluator(metrics=["con"])
         grid = np.array([["A", "B"]], dtype=object)

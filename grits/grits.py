@@ -754,20 +754,6 @@ class GritsEvaluator:
         self.num_exact_grid_matches: list[int] = []
         self.num_exact_cell_matches: list[int] = []
 
-    def append_result(
-        self, true_positive_score: float, num_true_cells: int, num_pred_cells: int
-    ) -> None:
-        """Append a pre-computed result to the evaluator.
-
-        Args:
-            true_positive_score: The true positive score for a sample.
-            num_true_cells: The number of true cells for a sample.
-            num_pred_cells: The number of predicted cells for a sample.
-        """
-        self.true_positive_scores.append(true_positive_score)
-        self.num_true_cells.append(num_true_cells)
-        self.num_pred_cells.append(num_pred_cells)
-
     def eval_sample(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
         """Evaluate a sample and store the results."""
         if isinstance(true_grids, np.ndarray):
@@ -938,21 +924,6 @@ class MultiGritsEvaluator:
 
         self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
         self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
-
-    def append_result(
-        self, true_positive_scores: dict[str, float], num_true_cells: int, num_pred_cells: int
-    ) -> None:
-        """Append a pre-computed result for each metric.
-
-        Cell counts are shared across metrics (same table structure).
-
-        Args:
-            true_positive_scores: Dict mapping metric name to true positive score.
-            num_true_cells: The number of true cells for a sample.
-            num_pred_cells: The number of predicted cells for a sample.
-        """
-        for metric, evaluator in self._evaluators.items():
-            evaluator.append_result(true_positive_scores[metric], num_true_cells, num_pred_cells)
 
     def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.
