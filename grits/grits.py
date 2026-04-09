@@ -327,7 +327,7 @@ def _align_2d_outer(
     return aligned_true_indices, aligned_pred_indices, score
 
 
-def _get_n_cols(grid: list[list[object]]) -> int:
+def _get_n_cols(grid: list[list[Any]]) -> int:
     """Determine the number of columns in a 2D grid.
 
     Args:
