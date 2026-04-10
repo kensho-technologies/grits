@@ -787,8 +787,8 @@ def hungarian_grits_loc_matching(
     return _hungarian_grits_matching(true_grids_loc, pred_grids_loc, grits_loc_matching)
 
 
-class GritsEvaluator:
-    """Accumulates results from multiple GriTS evaluation calls and computes aggregate metrics."""
+class _GritsMetricEvaluator:
+    """Accumulates results from GriTS evaluation calls for a single metric and computes aggregate scores."""
 
     _METRIC_FUNCTIONS: dict[str, Callable[[list, list], HungarianGritsResult]] = {
         "con": hungarian_grits_con_matching,
@@ -913,7 +913,7 @@ class GritsEvaluator:
         }
 
 
-class MultiGritsEvaluator:
+class GritsEvaluator:
     """Tracks multiple GriTS metrics simultaneously by composing single-metric evaluators."""
 
     def __init__(self, metrics: list[str] | None = None) -> None:
@@ -924,7 +924,7 @@ class MultiGritsEvaluator:
         """
         if metrics is None:
             metrics = ["con", "loc", "top"]
-        self._evaluators = {metric: GritsEvaluator(metric=metric) for metric in metrics}
+        self._evaluators = {metric: _GritsMetricEvaluator(metric=metric) for metric in metrics}
 
     @property
     def metrics(self) -> list[str]:

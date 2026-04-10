@@ -12,7 +12,6 @@ from .grits import (
     GritsEvaluator,
     GritsResult,
     HungarianGritsResult,
-    MultiGritsEvaluator,
     cell_dicts_to_grid_con,
     cell_dicts_to_grid_loc,
     cell_dicts_to_grid_top,
@@ -59,7 +58,6 @@ __all__ = [
     "hungarian_grits_loc_matching",
     "hungarian_grits_top_matching",
     "GritsEvaluator",
-    "MultiGritsEvaluator",
     # utilities
     "compute_fscore",
     "iou",
