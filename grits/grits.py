@@ -961,12 +961,12 @@ class GritsEvaluator:
         for metric, evaluator in self._evaluators.items():
             evaluator.eval_sample(true_grids[metric], pred_grids[metric])
 
-    def eval_html(self, true_htmls: str | list[str], pred_htmls: str | list[str]) -> None:
+    def eval_html(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
         """Parse HTML tables and evaluate the con and top metrics.
 
         Args:
-            true_htmls: HTML string or list of HTML strings of ground truth tables.
-            pred_htmls: HTML string or list of HTML strings of predicted tables.
+            true_htmls: List of HTML strings of ground truth tables.
+            pred_htmls: List of HTML strings of predicted tables.
 
         Raises:
             ValueError: If any HTML string cannot be parsed, or if the evaluator
@@ -977,11 +977,6 @@ class GritsEvaluator:
             raise ValueError(
                 f"eval_html requires both 'con' and 'top' metrics, but missing: {missing}"
             )
-
-        if isinstance(true_htmls, str):
-            true_htmls = [true_htmls]
-        if isinstance(pred_htmls, str):
-            pred_htmls = [pred_htmls]
 
         true_grids_con = []
         true_grids_top = []

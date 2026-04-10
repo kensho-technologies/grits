@@ -138,7 +138,7 @@ true_html = "<table><tr><td>Name</td><td>Score</td></tr><tr><td>Alice</td><td>95
 pred_html = "<table><tr><td>Name</td><td>Score</td></tr><tr><td>Alice</td><td>90</td></tr></table>"
 
 # From HTML (evaluates con and top):
-evaluator.eval_html(true_html, pred_html)
+evaluator.eval_html([true_html], [pred_html])
 
 results = evaluator.compute_grits()
 
@@ -167,7 +167,7 @@ print(grid_top) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
 | GriTS_Top | `grits_top` | Cell topology / spanning structure (using IoU of relative spans) |
 | GriTS_Loc | `grits_loc` | Cell spatial location similarity (using IoU of bounding boxes) |
 
-These functions return a `GritsResult` dataclass with named fields such as `true_positive_score`, `true_grid_scores`, and `is_exact_match`.
+These functions return a tuple of (F1-score, precision, recall). For more detailed results, use `grits_con_matching`, `grits_top_matching`, and `grits_loc_matching`, which return a `GritsResult` dataclass with named fields such as `true_positive_score`, `true_grid_scores`, and `is_exact_match`.
 
 For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con_matching`, `hungarian_grits_top_matching`, and `hungarian_grits_loc_matching`. These return a `HungarianGritsResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
 
