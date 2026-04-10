@@ -787,8 +787,8 @@ def hungarian_grits_loc_matching(
     return _hungarian_grits_matching(true_grids_loc, pred_grids_loc, grits_loc_matching)
 
 
-class GritsEvaluator:
-    """Accumulates results from multiple GriTS evaluation calls and computes aggregate metrics."""
+class _GritsMetricEvaluator:
+    """Accumulates results from GriTS evaluation calls for a single metric and computes aggregate scores."""
 
     _METRIC_FUNCTIONS: dict[str, Callable[[list, list], HungarianGritsResult]] = {
         "con": hungarian_grits_con_matching,
@@ -812,12 +812,8 @@ class GritsEvaluator:
         self.num_exact_grid_matches: list[int] = []
         self.num_exact_cell_matches: list[int] = []
 
-    def eval_sample(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
+    def eval_sample(self, true_grids: list, pred_grids: list) -> None:
         """Evaluate a sample and store the results."""
-        if isinstance(true_grids, np.ndarray):
-            true_grids = [true_grids]
-        if isinstance(pred_grids, np.ndarray):
-            pred_grids = [pred_grids]
         result = self._grits_function(true_grids, pred_grids)
         true_positive_score = result.true_positive_score
         true_grid_scores = result.true_grid_scores
@@ -913,7 +909,7 @@ class GritsEvaluator:
         }
 
 
-class MultiGritsEvaluator:
+class GritsEvaluator:
     """Tracks multiple GriTS metrics simultaneously by composing single-metric evaluators."""
 
     def __init__(self, metrics: list[str] | None = None) -> None:
@@ -924,29 +920,53 @@ class MultiGritsEvaluator:
         """
         if metrics is None:
             metrics = ["con", "loc", "top"]
-        self._evaluators = {metric: GritsEvaluator(metric=metric) for metric in metrics}
+        self._evaluators = {metric: _GritsMetricEvaluator(metric=metric) for metric in metrics}
 
     @property
     def metrics(self) -> list[str]:
         """Return the list of metric names being tracked."""
         return list(self._evaluators)
 
-    def eval_sample(self, true_grids: dict[str, list], pred_grids: dict[str, list]) -> None:
+    def eval_sample(
+        self,
+        true_grids: dict[str, list] | list,
+        pred_grids: dict[str, list] | list,
+    ) -> None:
         """Evaluate a sample for each metric.
 
         Args:
-            true_grids: Dict mapping metric name to list of ground truth grids.
-            pred_grids: Dict mapping metric name to list of predicted grids.
+            true_grids: Dict mapping metric name to list of ground truth grids,
+                or a list of grids when tracking a single metric.
+            pred_grids: Dict mapping metric name to list of predicted grids,
+                or a list of grids when tracking a single metric.
+
+        Raises:
+            TypeError: If lists are passed but the evaluator tracks multiple metrics.
         """
+        if not isinstance(true_grids, dict) or not isinstance(pred_grids, dict):
+            if len(self._evaluators) != 1:
+                raise TypeError(
+                    "eval_sample requires dict inputs when tracking multiple metrics, "
+                    f"but got {type(true_grids).__name__} and {type(pred_grids).__name__}. "
+                    "Pass a dict mapping metric name to list of grids."
+                )
+            if isinstance(true_grids, dict) or isinstance(pred_grids, dict):
+                raise TypeError(
+                    "eval_sample requires both arguments to be the same type "
+                    "(both dicts or both lists)."
+                )
+            metric = next(iter(self._evaluators))
+            self._evaluators[metric].eval_sample(true_grids, pred_grids)
+            return
         for metric, evaluator in self._evaluators.items():
             evaluator.eval_sample(true_grids[metric], pred_grids[metric])
 
-    def eval_html(self, true_htmls: str | list[str], pred_htmls: str | list[str]) -> None:
+    def eval_html(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
         """Parse HTML tables and evaluate the con and top metrics.
 
         Args:
-            true_htmls: HTML string or list of HTML strings of ground truth tables.
-            pred_htmls: HTML string or list of HTML strings of predicted tables.
+            true_htmls: List of HTML strings of ground truth tables.
+            pred_htmls: List of HTML strings of predicted tables.
 
         Raises:
             ValueError: If any HTML string cannot be parsed, or if the evaluator
@@ -957,11 +977,6 @@ class MultiGritsEvaluator:
             raise ValueError(
                 f"eval_html requires both 'con' and 'top' metrics, but missing: {missing}"
             )
-
-        if isinstance(true_htmls, str):
-            true_htmls = [true_htmls]
-        if isinstance(pred_htmls, str):
-            pred_htmls = [pred_htmls]
 
         true_grids_con = []
         true_grids_top = []

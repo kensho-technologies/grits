@@ -32,6 +32,8 @@ Requires Python >= 3.10.
 
 ### Computing GriTS-Con for an individual sample
 
+Here we illustrate a basic example converting two tables to their grid representations, then calculating GriTS-Con.
+
 ```python
 from grits import grits_con, cell_dicts_to_grid_con
 
@@ -57,15 +59,27 @@ grits_con_score, grits_con_precision, grits_con_recall = grits_con(true_grid_con
 print(f"GriTS_Con: {grits_con_score:.4f}") # GriTS_Con: 0.8750
 ```
 
-### Evaluating and aggregating across a collection of samples
+The GriTS metric accepts table input as a grid (matrix).
+There are three types of grids (Grid-Top, Grid-Con, Grid-Loc) containing different features of the table cells to be evaluated.
+The library can convert a table to one or more grid types either from an HTML string representation or a list of cell dicts.
 
-Use `GritsEvaluator` to accumulate results across a dataset and compute aggregate metrics:
+The above example illustrates converting each table to a grid (con) from the cell dicts representation.
+Then GriTS-Con is computed between the two grids.
+
+### Aggregating across a collection of samples
+
+Use `GritsEvaluator` to accumulate results across a dataset and compute aggregate metrics.
+In this example, we track a single metric type, GriTS-Con.
 
 ```python
 from grits import GritsEvaluator, cell_dicts_to_grid_con
 
-evaluator = GritsEvaluator(metric="con")
+evaluator = GritsEvaluator(metrics=["con"])
 
+true_samples = []
+pred_samples = []
+
+# Create two data samples
 # Sample 1
 true_cells_1 = [
     {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
@@ -73,16 +87,17 @@ true_cells_1 = [
     {"row_nums": [1], "column_nums": [0], "cell_text": "Alice"},
     {"row_nums": [1], "column_nums": [1], "cell_text": "95"},
 ]
+true_grid_con_1 = cell_dicts_to_grid_con(true_cells_1)
+true_samples.append(true_grid_con_1)
+
 pred_cells_1 = [
     {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
     {"row_nums": [0], "column_nums": [1], "cell_text": "Score"},
     {"row_nums": [1], "column_nums": [0], "cell_text": "Alice"},
     {"row_nums": [1], "column_nums": [1], "cell_text": "90"},
 ]
-
-true_grid_con_1 = cell_dicts_to_grid_con(true_cells_1)
 pred_grid_con_1 = cell_dicts_to_grid_con(pred_cells_1)
-evaluator.eval_sample([true_grid_con_1], [pred_grid_con_1])
+pred_samples.append(pred_grid_con_1)
 
 # Sample 2
 true_cells_2 = [
@@ -91,36 +106,39 @@ true_cells_2 = [
     {"row_nums": [1], "column_nums": [0], "cell_text": "Bob"},
     {"row_nums": [1], "column_nums": [1], "cell_text": "85"},
 ]
+true_grid_con_2 = cell_dicts_to_grid_con(true_cells_2)
+true_samples.append(true_grid_con_2)
+
 pred_cells_2 = [
     {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
     {"row_nums": [0], "column_nums": [1], "cell_text": "Bob"}
 ]
-
-true_grid_con_2 = cell_dicts_to_grid_con(true_cells_2)
 pred_grid_con_2 = cell_dicts_to_grid_con(pred_cells_2)
-evaluator.eval_sample([true_grid_con_2], [pred_grid_con_2])
+pred_samples.append(pred_grid_con_2)
 
-results = evaluator.compute_grits()           # micro (dict with grits_con, grits_con_precision, etc.)
-avg_results = evaluator.compute_avg_grits()   # macro-averaged (dict with avg_grits_con, etc.)
+# Iterate over samples and evaluate each
+for true_grid_con, pred_grid_con in zip(true_samples, pred_samples):
+    evaluator.eval_sample([true_grid_con], [pred_grid_con])
+
+results = evaluator.compute_grits()
 
 print(f"GriTS_Con: {results['grits_con']:.4f}") # GriTS_Con: 0.6786
-print(f"Avg GriTS_Con: {avg_results['avg_grits_con']:.4f}") # Avg GriTS_Con: 0.6458
 ```
 
 ### Evaluating multiple metrics at once
 
-Use `MultiGritsEvaluator` to track multiple metrics simultaneously:
+Use `GritsEvaluator` to track multiple metrics simultaneously:
 
 ```python
-from grits import MultiGritsEvaluator
+from grits import GritsEvaluator
 
-evaluator = MultiGritsEvaluator()  # tracks "con", "loc", and "top" by default
+evaluator = GritsEvaluator(metrics=["top", "con"])
 
 true_html = "<table><tr><td>Name</td><td>Score</td></tr><tr><td>Alice</td><td>95</td></tr></table>"
 pred_html = "<table><tr><td>Name</td><td>Score</td></tr><tr><td>Alice</td><td>90</td></tr></table>"
 
 # From HTML (evaluates con and top):
-evaluator.eval_html(true_html, pred_html)
+evaluator.eval_html([true_html], [pred_html])
 
 results = evaluator.compute_grits()
 
@@ -149,7 +167,7 @@ print(grid_top) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
 | GriTS_Top | `grits_top` | Cell topology / spanning structure (using IoU of relative spans) |
 | GriTS_Loc | `grits_loc` | Cell spatial location similarity (using IoU of bounding boxes) |
 
-These functions return a `GritsResult` dataclass with named fields such as `true_positive_score`, `true_grid_scores`, and `is_exact_match`.
+These functions return a tuple of (F1-score, precision, recall). For more detailed results, use `grits_con_matching`, `grits_top_matching`, and `grits_loc_matching`, which return a `GritsResult` dataclass with named fields such as `true_positive_score`, `true_grid_scores`, and `is_exact_match`.
 
 For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con_matching`, `hungarian_grits_top_matching`, and `hungarian_grits_loc_matching`. These return a `HungarianGritsResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
 
