@@ -33,7 +33,7 @@ Requires Python >= 3.10.
 ### Computing GriTS-Con for an individual sample
 
 ```python
-from grits import grits_con, compute_fscore, cell_dicts_to_grid_con
+from grits import grits_con, cell_dicts_to_grid_con
 
 # Define ground-truth and predicted tables as lists of cell dicts
 true_cells = [
@@ -52,12 +52,7 @@ pred_cells = [
 true_grid_con = cell_dicts_to_grid_con(true_cells)
 pred_grid_con = cell_dicts_to_grid_con(pred_cells)
 
-result = grits_con(true_grid_con, pred_grid_con)  # returns a GritsResult
-
-num_true_cells = len(true_grid_con) * len(true_grid_con[0])
-num_pred_cells = len(pred_grid_con) * len(pred_grid_con[0])
-
-grits_con_score, grits_con_precision, grits_con_recall = compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
+grits_con_score, grits_con_precision, grits_con_recall = grits_con(true_grid_con, pred_grid_con)
 
 print(f"GriTS_Con: {grits_con_score:.4f}") # GriTS_Con: 0.8750
 ```
@@ -156,7 +151,7 @@ print(grid_top) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
 
 These functions return a `GritsResult` dataclass with named fields such as `true_positive_score`, `true_grid_scores`, and `is_exact_match`.
 
-For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con`, `hungarian_grits_top`, and `hungarian_grits_loc`. These return a `HungarianGritsResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
+For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con_matching`, `hungarian_grits_top_matching`, and `hungarian_grits_loc_matching`. These return a `HungarianGritsResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
 
 ## References
 

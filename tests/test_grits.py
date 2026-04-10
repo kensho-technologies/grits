@@ -11,11 +11,14 @@ from grits.grits import (
     cell_dicts_to_grid_top,
     compute_fscore,
     grits_con,
+    grits_con_matching,
     grits_loc,
+    grits_loc_matching,
     grits_top,
-    hungarian_grits_con,
-    hungarian_grits_loc,
-    hungarian_grits_top,
+    grits_top_matching,
+    hungarian_grits_con_matching,
+    hungarian_grits_loc_matching,
+    hungarian_grits_top_matching,
     iou,
     lcs_similarity,
 )
@@ -164,7 +167,7 @@ class TestGritsCon:
         """Test main return path with different-shaped grids (bypasses early returns)."""
         true_grid = [["A"]]
         pred_grid = [["A", "X"]]
-        result = grits_con(true_grid, pred_grid)
+        result = grits_con_matching(true_grid, pred_grid)
         assert isinstance(result.true_grid_scores, np.ndarray)
         assert isinstance(result.pred_grid_scores, np.ndarray)
         assert result.true_grid_scores.shape == (1, 1)
@@ -178,7 +181,7 @@ class TestGritsCon:
         """Test grids with completely different text and different shapes."""
         true_grid = [["A", "B"]]
         pred_grid = [["X"], ["Y"]]
-        result = grits_con(true_grid, pred_grid)
+        result = grits_con_matching(true_grid, pred_grid)
         assert result.true_positive_score == 0.0
         assert result.true_grid_scores.sum() == 0.0
         assert result.pred_grid_scores.sum() == 0.0
@@ -186,11 +189,68 @@ class TestGritsCon:
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [["A", "B"], ["C", "D"]]
-        result = grits_con(grid, grid)
+        result = grits_con_matching(grid, grid)
         assert result.true_positive_score == 4.0
         assert result.true_positive_score_upper_bound == 4.0
         assert isinstance(result.true_grid_scores, np.ndarray)
         assert result.true_grid_scores.shape == (2, 2)
+
+
+class TestGritsConFscore:
+    def test_identical_grids(self):
+        grid = [["A", "B"], ["C", "D"]]
+        f1, precision, recall = grits_con(grid, grid)
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_different_shapes(self):
+        true_grid = [["A"]]
+        pred_grid = [["A", "X"]]
+        f1, precision, recall = grits_con(true_grid, pred_grid)
+        assert recall == 1.0
+        assert precision == 0.5
+        assert f1 == pytest.approx(2 / 3)
+
+    def test_no_overlap(self):
+        true_grid = [["A", "B"]]
+        pred_grid = [["X"], ["Y"]]
+        f1, precision, recall = grits_con(true_grid, pred_grid)
+        assert f1 == 0.0
+
+
+class TestGritsTopFscore:
+    def test_identical_grids(self):
+        grid = [[[0, 0, 1, 1], [0, 0, 1, 1]], [[0, 0, 1, 1], [0, 0, 1, 1]]]
+        f1, precision, recall = grits_top(grid, grid)
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_different_shapes(self):
+        true_grid = [[[0, 0, 1, 1]]]
+        pred_grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
+        f1, precision, recall = grits_top(true_grid, pred_grid)
+        assert recall == 1.0
+        assert precision == 0.5
+        assert f1 == pytest.approx(2 / 3)
+
+
+class TestGritsLocFscore:
+    def test_identical_grids(self):
+        grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
+        f1, precision, recall = grits_loc(grid, grid)
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_different_shapes(self):
+        true_grid = [[[0, 0, 10, 10]]]
+        pred_grid = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
+        f1, precision, recall = grits_loc(true_grid, pred_grid)
+        assert recall == 1.0
+        assert precision == 0.5
+        assert f1 == pytest.approx(2 / 3)
 
 
 class TestGritsTop:
@@ -198,7 +258,7 @@ class TestGritsTop:
         """Test main return path with different-shaped grids (bypasses early returns)."""
         true_grid = [[[0, 0, 1, 1]]]
         pred_grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
-        result = grits_top(true_grid, pred_grid)
+        result = grits_top_matching(true_grid, pred_grid)
         assert isinstance(result.true_grid_scores, np.ndarray)
         assert isinstance(result.pred_grid_scores, np.ndarray)
         assert result.true_grid_scores.shape == (1, 1)
@@ -208,7 +268,7 @@ class TestGritsTop:
     def test_identical_grids(self):
         """Test early exit path when grids are identical."""
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]], [[0, 0, 1, 1], [0, 0, 1, 1]]]
-        result = grits_top(grid, grid)
+        result = grits_top_matching(grid, grid)
         assert result.true_positive_score == 4.0
         assert result.true_positive_score_upper_bound == 4.0
         assert isinstance(result.true_grid_scores, np.ndarray)
@@ -266,7 +326,7 @@ class TestGritsLoc:
     def test_different_shapes(self):
         true_grid = [[[0, 0, 10, 10]]]
         pred_grid = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
-        result = grits_loc(true_grid, pred_grid)
+        result = grits_loc_matching(true_grid, pred_grid)
         assert isinstance(result.true_grid_scores, np.ndarray)
         assert result.true_grid_scores.shape == (1, 1)
         assert result.pred_grid_scores.shape == (1, 2)
@@ -274,7 +334,7 @@ class TestGritsLoc:
 
     def test_identical_grids(self):
         grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
-        result = grits_loc(grid, grid)
+        result = grits_loc_matching(grid, grid)
         assert result.true_positive_score == 4.0
         assert result.true_positive_score_upper_bound == 4.0
 
@@ -282,14 +342,14 @@ class TestGritsLoc:
 class TestHungarianGritsLoc:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
-        result = hungarian_grits_loc([grid], [grid])
+        result = hungarian_grits_loc_matching([grid], [grid])
         assert result.true_positive_score == 4.0
         assert result.true_positive_score_upper_bound == 4.0
 
     def test_multiple_grids(self):
         grid_a = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
         grid_b = [[[50, 50, 60, 60], [60, 50, 70, 60]]]
-        result = hungarian_grits_loc([grid_a, grid_b], [grid_b, grid_a])
+        result = hungarian_grits_loc_matching([grid_a, grid_b], [grid_b, grid_a])
         # Hungarian matching should pair them optimally: a-a and b-b
         assert result.true_positive_score == 4.0
 
@@ -298,7 +358,7 @@ class TestHungarianGritsCon:
     def test_single_grid_pair(self):
         true_grids = [np.array([["A", "B"], ["C", "D"]], dtype=object)]
         pred_grids = [np.array([["A", "B"], ["C", "D"]], dtype=object)]
-        result = hungarian_grits_con(true_grids, pred_grids)
+        result = hungarian_grits_con_matching(true_grids, pred_grids)
         assert result.true_positive_score == 4.0
 
     def test_multiple_grids(self):
@@ -306,7 +366,7 @@ class TestHungarianGritsCon:
         grid_b = np.array([["X", "Y"]], dtype=object)
         true_grids = [grid_a, grid_b]
         pred_grids = [grid_b, grid_a]
-        result = hungarian_grits_con(true_grids, pred_grids)
+        result = hungarian_grits_con_matching(true_grids, pred_grids)
         # Hungarian matching should pair them optimally: a-a and b-b
         assert result.true_positive_score == 4.0
 
@@ -314,7 +374,7 @@ class TestHungarianGritsCon:
 class TestHungarianGritsTop:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
-        result = hungarian_grits_top([grid], [grid])
+        result = hungarian_grits_top_matching([grid], [grid])
         assert result.true_positive_score == 2.0
 
 
