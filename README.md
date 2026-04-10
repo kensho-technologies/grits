@@ -118,7 +118,7 @@ pred_samples.append(pred_grid_con_2)
 
 # Iterate over samples and evaluate each
 for true_grid_con, pred_grid_con in zip(true_samples, pred_samples):
-    evaluator.eval_sample({"con": [true_grid_con]}, {"con": [pred_grid_con]})
+    evaluator.eval_sample([true_grid_con], [pred_grid_con])
 
 results = evaluator.compute_grits()
 

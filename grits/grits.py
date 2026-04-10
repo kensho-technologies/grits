@@ -812,12 +812,8 @@ class _GritsMetricEvaluator:
         self.num_exact_grid_matches: list[int] = []
         self.num_exact_cell_matches: list[int] = []
 
-    def eval_sample(self, true_grids: list | np.ndarray, pred_grids: list | np.ndarray) -> None:
+    def eval_sample(self, true_grids: list, pred_grids: list) -> None:
         """Evaluate a sample and store the results."""
-        if isinstance(true_grids, np.ndarray):
-            true_grids = [true_grids]
-        if isinstance(pred_grids, np.ndarray):
-            pred_grids = [pred_grids]
         result = self._grits_function(true_grids, pred_grids)
         true_positive_score = result.true_positive_score
         true_grid_scores = result.true_grid_scores
@@ -931,13 +927,37 @@ class GritsEvaluator:
         """Return the list of metric names being tracked."""
         return list(self._evaluators)
 
-    def eval_sample(self, true_grids: dict[str, list], pred_grids: dict[str, list]) -> None:
+    def eval_sample(
+        self,
+        true_grids: dict[str, list] | list,
+        pred_grids: dict[str, list] | list,
+    ) -> None:
         """Evaluate a sample for each metric.
 
         Args:
-            true_grids: Dict mapping metric name to list of ground truth grids.
-            pred_grids: Dict mapping metric name to list of predicted grids.
+            true_grids: Dict mapping metric name to list of ground truth grids,
+                or a list of grids when tracking a single metric.
+            pred_grids: Dict mapping metric name to list of predicted grids,
+                or a list of grids when tracking a single metric.
+
+        Raises:
+            TypeError: If lists are passed but the evaluator tracks multiple metrics.
         """
+        if not isinstance(true_grids, dict) or not isinstance(pred_grids, dict):
+            if len(self._evaluators) != 1:
+                raise TypeError(
+                    "eval_sample requires dict inputs when tracking multiple metrics, "
+                    f"but got {type(true_grids).__name__} and {type(pred_grids).__name__}. "
+                    "Pass a dict mapping metric name to list of grids."
+                )
+            if isinstance(true_grids, dict) or isinstance(pred_grids, dict):
+                raise TypeError(
+                    "eval_sample requires both arguments to be the same type "
+                    "(both dicts or both lists)."
+                )
+            metric = next(iter(self._evaluators))
+            self._evaluators[metric].eval_sample(true_grids, pred_grids)
+            return
         for metric, evaluator in self._evaluators.items():
             evaluator.eval_sample(true_grids[metric], pred_grids[metric])
 
