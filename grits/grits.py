@@ -812,7 +812,7 @@ class _GritsMetricEvaluator:
         self.num_exact_grid_matches: list[int] = []
         self.num_exact_cell_matches: list[int] = []
 
-    def eval_sample(self, true_grids: list, pred_grids: list) -> None:
+    def eval_grids(self, true_grids: list, pred_grids: list) -> None:
         """Evaluate a sample and store the results."""
         result = self._grits_function(true_grids, pred_grids)
         true_positive_score = result.true_positive_score
@@ -927,41 +927,44 @@ class GritsEvaluator:
         """Return the list of metric names being tracked."""
         return list(self._evaluators)
 
-    def eval_sample(
+    def eval_grids_by_metric(
         self,
-        true_grids: dict[str, list] | list,
-        pred_grids: dict[str, list] | list,
+        true_grids: dict[str, list],
+        pred_grids: dict[str, list],
     ) -> None:
-        """Evaluate a sample for each metric.
+        """Evaluate a sample for each metric using a dict of grids.
 
         Args:
-            true_grids: Dict mapping metric name to list of ground truth grids,
-                or a list of grids when tracking a single metric.
-            pred_grids: Dict mapping metric name to list of predicted grids,
-                or a list of grids when tracking a single metric.
+            true_grids: Dict mapping metric name to list of ground truth grids.
+            pred_grids: Dict mapping metric name to list of predicted grids.
+        """
+        for metric, evaluator in self._evaluators.items():
+            evaluator.eval_grids(true_grids[metric], pred_grids[metric])
+
+    def eval_grids(
+        self,
+        true_grids: list,
+        pred_grids: list,
+    ) -> None:
+        """Evaluate a sample for a single metric using lists of grids.
+
+        Args:
+            true_grids: List of ground truth grids.
+            pred_grids: List of predicted grids.
 
         Raises:
-            TypeError: If lists are passed but the evaluator tracks multiple metrics.
+            TypeError: If the evaluator tracks more than one metric.
         """
-        if not isinstance(true_grids, dict) or not isinstance(pred_grids, dict):
-            if len(self._evaluators) != 1:
-                raise TypeError(
-                    "eval_sample requires dict inputs when tracking multiple metrics, "
-                    f"but got {type(true_grids).__name__} and {type(pred_grids).__name__}. "
-                    "Pass a dict mapping metric name to list of grids."
-                )
-            if isinstance(true_grids, dict) or isinstance(pred_grids, dict):
-                raise TypeError(
-                    "eval_sample requires both arguments to be the same type "
-                    "(both dicts or both lists)."
-                )
-            metric = next(iter(self._evaluators))
-            self._evaluators[metric].eval_sample(true_grids, pred_grids)
-            return
-        for metric, evaluator in self._evaluators.items():
-            evaluator.eval_sample(true_grids[metric], pred_grids[metric])
+        if len(self._evaluators) != 1:
+            raise TypeError(
+                "eval_grids requires the evaluator to track exactly one metric, "
+                f"but it tracks {list(self._evaluators)}. "
+                "Use eval_grids_by_metric with a dict mapping metric name to list of grids."
+            )
+        metric = next(iter(self._evaluators))
+        self._evaluators[metric].eval_grids(true_grids, pred_grids)
 
-    def eval_html(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
+    def eval_htmls(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
         """Parse HTML tables and evaluate the con and top metrics.
 
         Args:
@@ -975,7 +978,7 @@ class GritsEvaluator:
         missing = {"con", "top"} - set(self._evaluators)
         if missing:
             raise ValueError(
-                f"eval_html requires both 'con' and 'top' metrics, but missing: {missing}"
+                f"eval_htmls requires both 'con' and 'top' metrics, but missing: {missing}"
             )
 
         true_grids_con = []
@@ -996,8 +999,8 @@ class GritsEvaluator:
             pred_grids_con.append(cell_dicts_to_grid_con(pred_cell_dicts))
             pred_grids_top.append(cell_dicts_to_grid_top(pred_cell_dicts))
 
-        self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
-        self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
+        self._evaluators["con"].eval_grids(true_grids_con, pred_grids_con)
+        self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
 
     def eval_table_cell_dicts(
         self,
@@ -1035,9 +1038,9 @@ class GritsEvaluator:
             pred_grids_loc.append(cell_dicts_to_grid_loc(cell_dicts))
             pred_grids_top.append(cell_dicts_to_grid_top(cell_dicts))
 
-        self._evaluators["con"].eval_sample(true_grids_con, pred_grids_con)
-        self._evaluators["loc"].eval_sample(true_grids_loc, pred_grids_loc)
-        self._evaluators["top"].eval_sample(true_grids_top, pred_grids_top)
+        self._evaluators["con"].eval_grids(true_grids_con, pred_grids_con)
+        self._evaluators["loc"].eval_grids(true_grids_loc, pred_grids_loc)
+        self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
 
     def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.
