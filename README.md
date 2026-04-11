@@ -118,7 +118,7 @@ pred_samples.append(pred_grid_con_2)
 
 # Iterate over samples and evaluate each
 for true_grid_con, pred_grid_con in zip(true_samples, pred_samples):
-    evaluator.eval_sample([true_grid_con], [pred_grid_con])
+    evaluator.eval_grids([true_grid_con], [pred_grid_con])
 
 results = evaluator.compute_grits()
 
@@ -138,7 +138,7 @@ true_html = "<table><tr><td>Name</td><td>Score</td></tr><tr><td>Alice</td><td>95
 pred_html = "<table><tr><td>Name</td><td>Score</td></tr><tr><td>Alice</td><td>90</td></tr></table>"
 
 # From HTML (evaluates con and top):
-evaluator.eval_html([true_html], [pred_html])
+evaluator.eval_htmls([true_html], [pred_html])
 
 results = evaluator.compute_grits()
 
