@@ -745,6 +745,31 @@ class TestGritsEvaluator:
         ):
             evaluator.eval_grids([grid], [grid])
 
+    def test_eval_htmls_bare_string_raises(self):
+        evaluator = GritsEvaluator()
+        html = "<table><tr><td>A</td></tr></table>"
+        with pytest.raises(TypeError, match="eval_htmls expects lists"):
+            evaluator.eval_htmls(html, html)
+
+    def test_eval_table_cell_dicts_single_list_raises(self):
+        evaluator = GritsEvaluator()
+        cell_dicts = [
+            {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 1, 1]},
+        ]
+        with pytest.raises(TypeError, match="eval_table_cell_dicts expects a list of lists"):
+            evaluator.eval_table_cell_dicts(cell_dicts, cell_dicts)
+
+    def test_mismatched_sample_counts_raises(self):
+        evaluator = GritsEvaluator(metrics=["con", "top"])
+        con_grid = [["A", "B"]]
+        top_grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
+        evaluator.eval_grids_by_metric(
+            {"con": [con_grid], "top": [top_grid]}, {"con": [con_grid], "top": [top_grid]}
+        )
+        evaluator._evaluators["con"].eval_grids([con_grid], [con_grid])  # noqa: SLF001
+        with pytest.raises(ValueError, match="Mismatched sample counts"):
+            evaluator.compute_grits()
+
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
             GritsEvaluator(metrics=["invalid"])

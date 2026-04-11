@@ -972,9 +972,12 @@ class GritsEvaluator:
             pred_htmls: List of HTML strings of predicted tables.
 
         Raises:
+            TypeError: If a bare string is passed instead of a list of strings.
             ValueError: If any HTML string cannot be parsed, or if the evaluator
                 is not tracking both "con" and "top" metrics.
         """
+        if isinstance(true_htmls, str) or isinstance(pred_htmls, str):  # type: ignore[unreachable]
+            raise TypeError("eval_htmls expects lists of HTML strings, not a single string.")
         missing = {"con", "top"} - set(self._evaluators)
         if missing:
             raise ValueError(
@@ -1014,8 +1017,19 @@ class GritsEvaluator:
             pred_cell_dicts: A list of lists of cell dicts, one list per predicted table.
 
         Raises:
+            TypeError: If a flat list of cell dicts is passed instead of a list of lists.
             ValueError: If the evaluator is not tracking all three metrics.
         """
+        if true_cell_dicts and isinstance(true_cell_dicts[0], dict):  # type: ignore[unreachable]
+            raise TypeError(
+                "eval_table_cell_dicts expects a list of lists of cell dicts, "
+                "not a single list of cell dicts."
+            )
+        if pred_cell_dicts and isinstance(pred_cell_dicts[0], dict):  # type: ignore[unreachable]
+            raise TypeError(
+                "eval_table_cell_dicts expects a list of lists of cell dicts, "
+                "not a single list of cell dicts."
+            )
         missing = {"con", "loc", "top"} - set(self._evaluators)
         if missing:
             raise ValueError(
@@ -1042,13 +1056,27 @@ class GritsEvaluator:
         self._evaluators["loc"].eval_grids(true_grids_loc, pred_grids_loc)
         self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
 
+    def _check_sample_counts(self) -> None:
+        """Raise ValueError if evaluated metrics have different numbers of samples."""
+        counts = {
+            m: len(ev.true_positive_scores)
+            for m, ev in self._evaluators.items()
+            if len(ev.true_positive_scores) > 0
+        }
+        if len(set(counts.values())) > 1:
+            raise ValueError(f"Mismatched sample counts across metrics: {counts}")
+
     def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.
 
         Returns:
             Dict with keys like grits_con, grits_con_precision, grits_con_recall
             for each metric with at least one evaluated sample.
+
+        Raises:
+            ValueError: If evaluated metrics have different numbers of samples.
         """
+        self._check_sample_counts()
         results: dict[str, float] = {}
         for ev in self._evaluators.values():
             if len(ev.true_positive_scores) > 0:
@@ -1061,7 +1089,11 @@ class GritsEvaluator:
         Returns:
             Dict with keys like avg_grits_con, avg_grits_con_precision, avg_grits_con_recall
             for each metric with at least one evaluated sample.
+
+        Raises:
+            ValueError: If evaluated metrics have different numbers of samples.
         """
+        self._check_sample_counts()
         results: dict[str, float] = {}
         for ev in self._evaluators.values():
             if len(ev.true_positive_scores) > 0:
