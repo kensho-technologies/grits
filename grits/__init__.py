@@ -10,8 +10,8 @@ from .bbox import (
 )
 from .grits import (
     GritsEvaluator,
-    GritsResult,
-    HungarianGritsResult,
+    GritsMatchingResult,
+    HungarianGritsMatchingResult,
     cell_dicts_to_grid_con,
     cell_dicts_to_grid_loc,
     cell_dicts_to_grid_top,
@@ -46,8 +46,8 @@ __all__ = [
     "cell_dicts_to_grid_top",
     "html_to_cell_dicts",
     # GriTS metrics
-    "GritsResult",
-    "HungarianGritsResult",
+    "GritsMatchingResult",
+    "HungarianGritsMatchingResult",
     "grits_con",
     "grits_con_matching",
     "grits_loc",
