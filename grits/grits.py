@@ -977,13 +977,9 @@ class _GritsMetricEvaluator:
             f"mean_grits_{m}_per_sample": sum(f1s) / len(f1s),
             f"mean_grits_{m}_precision_per_sample": sum(precisions) / len(precisions),
             f"mean_grits_{m}_recall_per_sample": sum(recalls) / len(recalls),
-            f"mean_grits_{m}_cell_exact_match_accuracy_per_sample": sum(
-                cell_exact_match_accuracies
-            )
+            f"mean_grits_{m}_cell_exact_match_accuracy_per_sample": sum(cell_exact_match_accuracies)
             / len(cell_exact_match_accuracies),
-            f"mean_grits_{m}_grid_exact_match_accuracy_per_sample": sum(
-                grid_exact_match_accuracies
-            )
+            f"mean_grits_{m}_grid_exact_match_accuracy_per_sample": sum(grid_exact_match_accuracies)
             / len(grid_exact_match_accuracies),
         }
 
