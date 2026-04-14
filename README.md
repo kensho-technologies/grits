@@ -65,9 +65,9 @@ print(f"GriTS_Con: {grits_con_score:.4f}") # GriTS_Con: 0.8750
 
 The GriTS metric accepts table input as a grid (matrix).
 There are three types of grids (Grid-Top, Grid-Con, Grid-Loc) containing different features of the table cells to be evaluated.
-The library can convert a table to one or more grid types either from an HTML string representation or a list of cell dicts.
+The library can convert a table to one or more grid types either from an HTML string representation or a list of `TableCell` objects.
 
-The above example illustrates converting each table to a grid (con) from the cell dicts representation.
+The above example illustrates converting each table to a grid (con) from the `TableCell` list representation.
 Then GriTS-Con is computed between the two grids.
 
 ### Aggregating across a collection of samples
