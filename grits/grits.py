@@ -1,10 +1,10 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 import dataclasses
-from difflib import SequenceMatcher
 import itertools
 from typing import Any, Callable
 
 import numpy as np
+import pylcs
 from scipy.optimize import linear_sum_assignment
 
 from .bbox import BBox, get_overlap_area
@@ -503,13 +503,9 @@ def lcs_similarity(string1: str, string2: str) -> float:
     if string1 == string2:
         return 1.0
 
-    sequence_matcher = SequenceMatcher(None, string1, string2)
+    lcs_length = pylcs.lcs_sequence_length(string1, string2)
 
-    lcs_length = sum(block.size for block in sequence_matcher.get_matching_blocks())
-
-    lcs_similarity_score = 2 * lcs_length / (len(string1) + len(string2))
-
-    return lcs_similarity_score
+    return 2 * lcs_length / (len(string1) + len(string2))
 
 
 def iou(bbox_1_and_area_1: tuple[BBox, float], bbox_2_and_area_2: tuple[BBox, float]) -> float:
