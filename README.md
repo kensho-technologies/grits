@@ -2,15 +2,19 @@
 
 GriTS is a Python package for evaluating table structure recognition (TSR) and table extraction (TE) using the Grid Table Similarity (GriTS) metric.
 
-<img src="https://github.com/user-attachments/assets/2c42cbf4-9116-4370-a281-16ebaefbef92" width="80%">
+![Illustration of matrix similarity](https://github.com/user-attachments/assets/2c42cbf4-9116-4370-a281-16ebaefbef92)
 
-<img src="https://github.com/user-attachments/assets/e0a9ce10-e8aa-4d29-b5a1-ff5c9141199c" height="100">
+$$\text{GriTS}_f(\mathbf{A}, \mathbf{B}) = \frac{2\sum_{i,j} f(\mathbf{\tilde{A}}_{i,j}, \mathbf{\tilde{B}}_{i,j})} {{|\mathbf{A}|} + {|\mathbf{B}|}}$$
 
 ## About
 
-The original GriTS metric was proposed in [GriTS: Grid Table Similarity Metric for Table Structure Recognition](https://arxiv.org/abs/2203.12555) for measuring the similarity between one predicted table and one ground truth table (the traditional TSR task). It treats each table as a matrix (grid) and computes a similarity between matrices (grids).
+The original GriTS metric was proposed in [GriTS: Grid Table Similarity Metric for Table Structure Recognition](https://arxiv.org/abs/2203.12555) for measuring the similarity between one predicted table and one ground truth table (the traditional TSR task).
+It treats each table as a matrix (grid) and computes a similarity between matrices (grids).
+Different versions of GriTS use different choices of function f() for computing the similarity between two individual elements in the grids.
 
-Subsequent work [PubTables-v2](https://arxiv.org/abs/2512.10888) generalized GriTS for page and document-level table extraction (TE). In this version, GriTS evaluates a list of predicted tables against a list of ground truth tables, assuming no correspondence is given between the two. GriTS determines the one-to-one correspondence that maximizes their aggregate similarity using the Hungarian algorithm.
+Subsequent work [PubTables-v2](https://arxiv.org/abs/2512.10888) generalized GriTS for page and document-level table extraction (TE).
+In this version, GriTS evaluates a list of predicted tables against a list of ground truth tables, assuming no correspondence is given between the two.
+GriTS determines the one-to-one correspondence that maximizes their aggregate similarity using the Hungarian algorithm.
 
 In the case of one predicted table and one ground truth table (traditional TSR task), GriTS for TE is equivalent to GriTS for TSR.
 
