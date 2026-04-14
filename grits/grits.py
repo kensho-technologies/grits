@@ -940,13 +940,13 @@ class _GritsMetricEvaluator:
             f"grits_{m}_grid_exact_match_accuracy": grid_exact_match_accuracy,
         }
 
-    def compute_avg_grits_per_sample(self) -> dict[str, float]:
+    def compute_mean_grits_per_sample(self) -> dict[str, float]:
         """Compute the (macro) average GriTS score. Compute the GriTS score for each instance, then average the GriTS score over all instances.
 
         Returns:
-            Dict with keys avg_grits_METRIC_per_sample, avg_grits_METRIC_precision_per_sample,
-            avg_grits_METRIC_recall_per_sample, avg_grits_METRIC_cell_exact_match_accuracy_per_sample,
-            and avg_grits_METRIC_grid_exact_match_accuracy_per_sample.
+            Dict with keys mean_grits_METRIC_per_sample, mean_grits_METRIC_precision_per_sample,
+            mean_grits_METRIC_recall_per_sample, mean_grits_METRIC_cell_exact_match_accuracy_per_sample,
+            and mean_grits_METRIC_grid_exact_match_accuracy_per_sample.
         """
         f1s = []
         precisions = []
@@ -978,14 +978,14 @@ class _GritsMetricEvaluator:
             grid_exact_match_accuracies.append(exact_grid_matches / num_true_grids)
         m = self._metric
         return {
-            f"avg_grits_{m}_per_sample": sum(f1s) / len(f1s),
-            f"avg_grits_{m}_precision_per_sample": sum(precisions) / len(precisions),
-            f"avg_grits_{m}_recall_per_sample": sum(recalls) / len(recalls),
-            f"avg_grits_{m}_cell_exact_match_accuracy_per_sample": sum(
+            f"mean_grits_{m}_per_sample": sum(f1s) / len(f1s),
+            f"mean_grits_{m}_precision_per_sample": sum(precisions) / len(precisions),
+            f"mean_grits_{m}_recall_per_sample": sum(recalls) / len(recalls),
+            f"mean_grits_{m}_cell_exact_match_accuracy_per_sample": sum(
                 cell_exact_match_accuracies
             )
             / len(cell_exact_match_accuracies),
-            f"avg_grits_{m}_grid_exact_match_accuracy_per_sample": sum(
+            f"mean_grits_{m}_grid_exact_match_accuracy_per_sample": sum(
                 grid_exact_match_accuracies
             )
             / len(grid_exact_match_accuracies),
@@ -1173,12 +1173,12 @@ class GritsEvaluator:
                 results.update(ev.compute_grits())
         return results
 
-    def compute_avg_grits_per_sample(self) -> dict[str, float]:
+    def compute_mean_grits_per_sample(self) -> dict[str, float]:
         """Compute macro-averaged GriTS scores for each metric.
 
         Returns:
-            Dict with keys like avg_grits_con_per_sample, avg_grits_con_precision_per_sample,
-            avg_grits_con_recall_per_sample for each metric with at least one evaluated sample.
+            Dict with keys like mean_grits_con_per_sample, mean_grits_con_precision_per_sample,
+            mean_grits_con_recall_per_sample for each metric with at least one evaluated sample.
 
         Raises:
             ValueError: If evaluated metrics have different numbers of samples.
@@ -1187,5 +1187,5 @@ class GritsEvaluator:
         results: dict[str, float] = {}
         for ev in self._evaluators.values():
             if len(ev.true_positive_scores) > 0:
-                results.update(ev.compute_avg_grits_per_sample())
+                results.update(ev.compute_mean_grits_per_sample())
         return results
