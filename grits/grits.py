@@ -1084,12 +1084,18 @@ class GritsEvaluator:
         self._evaluators["con"].eval_grids(true_grids_con, pred_grids_con)
         self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
 
+    _GRID_CONVERSION_FUNCTIONS: dict[str, Callable[[list[dict[str, Any]]], list[list[Any]]]] = {
+        "con": cell_dicts_to_grid_con,
+        "loc": cell_dicts_to_grid_loc,
+        "top": cell_dicts_to_grid_top,
+    }
+
     def eval_table_cell_dicts(
         self,
         true_cell_dicts: list[list[dict[str, Any]]],
         pred_cell_dicts: list[list[dict[str, Any]]],
     ) -> None:
-        """Convert table cell dicts to grids and evaluate all three metrics (con, loc, top).
+        """Convert table cell dicts to grids and evaluate whichever metrics the evaluator tracks.
 
         Args:
             true_cell_dicts: A list of lists of cell dicts, one list per ground truth table.
@@ -1097,7 +1103,6 @@ class GritsEvaluator:
 
         Raises:
             TypeError: If a flat list of cell dicts is passed instead of a list of lists.
-            ValueError: If the evaluator is not tracking all three metrics.
         """
         if true_cell_dicts and isinstance(true_cell_dicts[0], dict):  # type: ignore[unreachable]
             raise TypeError(
@@ -1109,31 +1114,12 @@ class GritsEvaluator:
                 "eval_table_cell_dicts expects a list of lists of cell dicts, "
                 "not a single list of cell dicts."
             )
-        missing = {"con", "loc", "top"} - set(self._evaluators)
-        if missing:
-            raise ValueError(
-                f"eval_table_cell_dicts requires 'con', 'loc', and 'top' metrics, but missing: {missing}"
-            )
 
-        true_grids_con = []
-        true_grids_loc = []
-        true_grids_top = []
-        for cell_dicts in true_cell_dicts:
-            true_grids_con.append(cell_dicts_to_grid_con(cell_dicts))
-            true_grids_loc.append(cell_dicts_to_grid_loc(cell_dicts))
-            true_grids_top.append(cell_dicts_to_grid_top(cell_dicts))
-
-        pred_grids_con = []
-        pred_grids_loc = []
-        pred_grids_top = []
-        for cell_dicts in pred_cell_dicts:
-            pred_grids_con.append(cell_dicts_to_grid_con(cell_dicts))
-            pred_grids_loc.append(cell_dicts_to_grid_loc(cell_dicts))
-            pred_grids_top.append(cell_dicts_to_grid_top(cell_dicts))
-
-        self._evaluators["con"].eval_grids(true_grids_con, pred_grids_con)
-        self._evaluators["loc"].eval_grids(true_grids_loc, pred_grids_loc)
-        self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
+        for metric, evaluator in self._evaluators.items():
+            to_grid = self._GRID_CONVERSION_FUNCTIONS[metric]
+            true_grids = [to_grid(cd) for cd in true_cell_dicts]
+            pred_grids = [to_grid(cd) for cd in pred_cell_dicts]
+            evaluator.eval_grids(true_grids, pred_grids)
 
     def _check_sample_counts(self) -> None:
         """Raise ValueError if evaluated metrics have different numbers of samples."""

@@ -818,11 +818,14 @@ class TestGritsEvaluator:
         results = evaluator.compute_grits()
         assert results["grits_top"] == 0.75
 
-    def test_eval_table_cell_dicts_missing_metric_raises(self):
+    def test_eval_table_cell_dicts_subset_of_metrics(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
         cell_dicts = _make_simple_cell_dicts()
-        with pytest.raises(ValueError, match="eval_table_cell_dicts requires"):
-            evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
+        evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 1.0
+        assert results["grits_top"] == 1.0
+        assert "grits_loc" not in results
 
     def test_eval_grids_perfect_score(self):
         evaluator = GritsEvaluator(metrics=["con"])
