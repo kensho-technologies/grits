@@ -756,6 +756,27 @@ def hungarian_grits_top_matching(
     return _hungarian_grits_matching(true_grids_top, pred_grids_top, grits_top_matching)
 
 
+def hungarian_grits_top(
+    true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Top F-score, precision, and recall across multiple relative span grids.
+
+    Uses the Hungarian algorithm to find the optimal one-to-one matching between
+    true and predicted grids before computing the aggregate score.
+
+    Args:
+        true_grids_top: List of ground truth relative span grids
+        pred_grids_top: List of predicted relative span grids
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = hungarian_grits_top_matching(true_grids_top, pred_grids_top)
+    num_true_cells = sum(len(g) * _get_n_cols(g) for g in true_grids_top)
+    num_pred_cells = sum(len(g) * _get_n_cols(g) for g in pred_grids_top)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
+
+
 def hungarian_grits_con_matching(
     true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
 ) -> HungarianGritsMatchingResult:
@@ -769,6 +790,27 @@ def hungarian_grits_con_matching(
         HungarianGritsMatchingResult with the matching results.
     """
     return _hungarian_grits_matching(true_grids_con, pred_grids_con, grits_con_matching)
+
+
+def hungarian_grits_con(
+    true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Con F-score, precision, and recall across multiple text grids.
+
+    Uses the Hungarian algorithm to find the optimal one-to-one matching between
+    true and predicted grids before computing the aggregate score.
+
+    Args:
+        true_grids_con: List of ground truth text content grids
+        pred_grids_con: List of predicted text content grids
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = hungarian_grits_con_matching(true_grids_con, pred_grids_con)
+    num_true_cells = sum(len(g) * _get_n_cols(g) for g in true_grids_con)
+    num_pred_cells = sum(len(g) * _get_n_cols(g) for g in pred_grids_con)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
 
 
 def hungarian_grits_loc_matching(
@@ -787,6 +829,28 @@ def hungarian_grits_loc_matching(
     return _hungarian_grits_matching(true_grids_loc, pred_grids_loc, grits_loc_matching)
 
 
+def hungarian_grits_loc(
+    true_grids_loc: list[list[list[list[int | float]]]],
+    pred_grids_loc: list[list[list[list[int | float]]]],
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Loc F-score, precision, and recall across multiple bounding box grids.
+
+    Uses the Hungarian algorithm to find the optimal one-to-one matching between
+    true and predicted grids before computing the aggregate score.
+
+    Args:
+        true_grids_loc: List of ground truth bounding box grids
+        pred_grids_loc: List of predicted bounding box grids
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = hungarian_grits_loc_matching(true_grids_loc, pred_grids_loc)
+    num_true_cells = sum(len(g) * _get_n_cols(g) for g in true_grids_loc)
+    num_pred_cells = sum(len(g) * _get_n_cols(g) for g in pred_grids_loc)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
+
+
 class _GritsMetricEvaluator:
     """Accumulates results from GriTS evaluation calls for a single metric and computes aggregate scores."""
 
@@ -801,9 +865,9 @@ class _GritsMetricEvaluator:
         if metric not in self._METRIC_FUNCTIONS:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
         self._metric = metric
-        self._grits_function: Callable[[list, list], HungarianGritsMatchingResult] = self._METRIC_FUNCTIONS[
-            metric
-        ]
+        self._grits_function: Callable[[list, list], HungarianGritsMatchingResult] = (
+            self._METRIC_FUNCTIONS[metric]
+        )
         self.true_positive_scores: list[float] = []
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
