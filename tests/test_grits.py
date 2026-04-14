@@ -649,7 +649,7 @@ class TestGritsMetricEvaluator:
 class TestGritsEvaluator:
     def test_default_metrics(self):
         evaluator = GritsEvaluator()
-        assert evaluator.metrics == ["con", "loc", "top"]
+        assert evaluator.metrics == ["con", "top"]
 
     def test_custom_metrics(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
@@ -764,7 +764,7 @@ class TestGritsEvaluator:
         assert "avg_grits_loc" not in avg_results
 
     def test_eval_table_cell_dicts_perfect(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         cell_dicts = _make_simple_cell_dicts()
         evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
         results = evaluator.compute_grits()
@@ -772,7 +772,7 @@ class TestGritsEvaluator:
             assert results[f"grits_{metric}"] == 1.0
 
     def test_eval_table_cell_dicts_different_text(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         true_cell_dicts = _make_simple_cell_dicts()
         pred_cell_dicts = [
             {"row_nums": [0], "column_nums": [0], "cell_text": "X", "bbox": [0, 0, 10, 10]},
@@ -787,7 +787,7 @@ class TestGritsEvaluator:
         assert results["grits_top"] == 1.0
 
     def test_eval_table_cell_dicts_list(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         cell_dicts_a = _make_simple_cell_dicts()
         cell_dicts_b = [
             {"row_nums": [0], "column_nums": [0], "cell_text": "X", "bbox": [0, 0, 5, 5]},
@@ -798,7 +798,7 @@ class TestGritsEvaluator:
             assert results[f"grits_{metric}"] == 1.0
 
     def test_eval_table_cell_dicts_different_bbox(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         true_cell_dicts = _make_simple_cell_dicts()
         # Same text and structure, but shifted bboxes
         pred_cell_dicts = [
@@ -814,7 +814,7 @@ class TestGritsEvaluator:
         assert results["grits_top"] == 1.0
 
     def test_eval_table_cell_dicts_different_structure(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         true_cell_dicts = _make_simple_cell_dicts()
         # Same text and bboxes, but one cell spans two columns
         pred_cell_dicts = [
