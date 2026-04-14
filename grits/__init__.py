@@ -12,9 +12,9 @@ from .grits import (
     GritsEvaluator,
     GritsMatchingResult,
     HungarianGritsMatchingResult,
-    cell_dicts_to_grid_con,
-    cell_dicts_to_grid_loc,
-    cell_dicts_to_grid_top,
+    cell_list_to_grid_con,
+    cell_list_to_grid_loc,
+    cell_list_to_grid_top,
     compute_fscore,
     grits_con,
     grits_con_matching,
@@ -31,7 +31,7 @@ from .grits import (
     iou,
     lcs_similarity,
 )
-from .utils import html_to_cell_dicts
+from .utils import TableCell, html_to_cell_list
 
 
 __all__ = [
@@ -43,11 +43,13 @@ __all__ = [
     "get_vertical_overlap",
     "is_horizontal_overlap",
     "is_vertical_overlap",
+    # cell types
+    "TableCell",
     # grid conversion
-    "cell_dicts_to_grid_con",
-    "cell_dicts_to_grid_loc",
-    "cell_dicts_to_grid_top",
-    "html_to_cell_dicts",
+    "cell_list_to_grid_con",
+    "cell_list_to_grid_loc",
+    "cell_list_to_grid_top",
+    "html_to_cell_list",
     # GriTS metrics
     "GritsMatchingResult",
     "HungarianGritsMatchingResult",

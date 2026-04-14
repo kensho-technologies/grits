@@ -6,9 +6,9 @@ from grits.bbox import BBox
 from grits.grits import (
     GritsEvaluator,
     _GritsMetricEvaluator,
-    cell_dicts_to_grid_con,
-    cell_dicts_to_grid_loc,
-    cell_dicts_to_grid_top,
+    cell_list_to_grid_con,
+    cell_list_to_grid_loc,
+    cell_list_to_grid_top,
     compute_fscore,
     grits_con,
     grits_con_matching,
@@ -25,64 +25,64 @@ from grits.grits import (
     iou,
     lcs_similarity,
 )
-from grits.utils import html_to_cell_dicts
+from grits.utils import TableCell, html_to_cell_list
 
 
-def _make_simple_cell_dicts():
-    """Return a simple 2x2 table as a list of cell dicts."""
+def _make_simple_cell_list():
+    """Return a simple 2x2 table as a list of TableCells."""
     return [
-        {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 10, 10]},
-        {"row_nums": [0], "column_nums": [1], "cell_text": "B", "bbox": [10, 0, 20, 10]},
-        {"row_nums": [1], "column_nums": [0], "cell_text": "C", "bbox": [0, 10, 10, 20]},
-        {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
+        TableCell(row_nums=[0], column_nums=[0], cell_text="A", bbox=[0, 0, 10, 10]),
+        TableCell(row_nums=[0], column_nums=[1], cell_text="B", bbox=[10, 0, 20, 10]),
+        TableCell(row_nums=[1], column_nums=[0], cell_text="C", bbox=[0, 10, 10, 20]),
+        TableCell(row_nums=[1], column_nums=[1], cell_text="D", bbox=[10, 10, 20, 20]),
     ]
 
 
 class TestCellsToGridCon:
     def test_empty_cells(self):
-        assert cell_dicts_to_grid_con([]) == [[]]
+        assert cell_list_to_grid_con([]) == [[]]
 
     def test_simple_text_grid(self):
-        cell_dicts = _make_simple_cell_dicts()
-        grid = cell_dicts_to_grid_con(cell_dicts)
+        cell_list = _make_simple_cell_list()
+        grid = cell_list_to_grid_con(cell_list)
         assert grid == [["A", "B"], ["C", "D"]]
 
     def test_spanning_cell(self):
-        cell_dicts = [
-            {"row_nums": [0, 1], "column_nums": [0], "cell_text": "span", "bbox": [0, 0, 10, 20]},
-            {"row_nums": [0], "column_nums": [1], "cell_text": "B", "bbox": [10, 0, 20, 10]},
-            {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
+        cell_list = [
+            TableCell(row_nums=[0, 1], column_nums=[0], cell_text="span", bbox=[0, 0, 10, 20]),
+            TableCell(row_nums=[0], column_nums=[1], cell_text="B", bbox=[10, 0, 20, 10]),
+            TableCell(row_nums=[1], column_nums=[1], cell_text="D", bbox=[10, 10, 20, 20]),
         ]
-        grid = cell_dicts_to_grid_con(cell_dicts)
+        grid = cell_list_to_grid_con(cell_list)
         assert grid == [["span", "B"], ["span", "D"]]
 
     def test_missing_cells(self):
-        cell_dicts = [
-            {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 10, 10]},
-            {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
+        cell_list = [
+            TableCell(row_nums=[0], column_nums=[0], cell_text="A", bbox=[0, 0, 10, 10]),
+            TableCell(row_nums=[1], column_nums=[1], cell_text="D", bbox=[10, 10, 20, 20]),
         ]
-        grid = cell_dicts_to_grid_con(cell_dicts)
+        grid = cell_list_to_grid_con(cell_list)
         assert grid == [["A", ""], ["", "D"]]
 
 
 class TestCellsToGridLoc:
     def test_empty_cells(self):
-        assert cell_dicts_to_grid_loc([]) == [[]]
+        assert cell_list_to_grid_loc([]) == [[]]
 
     def test_simple_bbox_grid(self):
-        cell_dicts = _make_simple_cell_dicts()
-        grid = cell_dicts_to_grid_loc(cell_dicts)
+        cell_list = _make_simple_cell_list()
+        grid = cell_list_to_grid_loc(cell_list)
         assert grid == [
             [[0, 0, 10, 10], [10, 0, 20, 10]],
             [[0, 10, 10, 20], [10, 10, 20, 20]],
         ]
 
     def test_missing_cells(self):
-        cell_dicts = [
-            {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 10, 10]},
-            {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
+        cell_list = [
+            TableCell(row_nums=[0], column_nums=[0], cell_text="A", bbox=[0, 0, 10, 10]),
+            TableCell(row_nums=[1], column_nums=[1], cell_text="D", bbox=[10, 10, 20, 20]),
         ]
-        grid = cell_dicts_to_grid_loc(cell_dicts)
+        grid = cell_list_to_grid_loc(cell_list)
         assert grid[0][0] == [0, 0, 10, 10]
         assert grid[0][1] == [0.0, 0.0, 0.0, 0.0]
         assert grid[1][0] == [0.0, 0.0, 0.0, 0.0]
@@ -91,21 +91,21 @@ class TestCellsToGridLoc:
 
 class TestCellsToGridTop:
     def test_empty_cells(self):
-        assert cell_dicts_to_grid_top([]) == [[]]
+        assert cell_list_to_grid_top([]) == [[]]
 
     def test_non_spanning(self):
-        cell_dicts = _make_simple_cell_dicts()
-        grid = cell_dicts_to_grid_top(cell_dicts)
+        cell_list = _make_simple_cell_list()
+        grid = cell_list_to_grid_top(cell_list)
         assert grid == [
             [[0, 0, 1, 1], [0, 0, 1, 1]],
             [[0, 0, 1, 1], [0, 0, 1, 1]],
         ]
 
     def test_spanning_cell(self):
-        cell_dicts = [
-            {"row_nums": [0, 1], "column_nums": [0, 1], "cell_text": "big"},
+        cell_list = [
+            TableCell(row_nums=[0, 1], column_nums=[0, 1], cell_text="big"),
         ]
-        grid = cell_dicts_to_grid_top(cell_dicts)
+        grid = cell_list_to_grid_top(cell_list)
         # top-left: min_col=0, min_row=0, max_col=2, max_row=2
         assert grid[0][0] == [0, 0, 2, 2]
         # top-right (col=1): min_col - 1 = -1, min_row - 0 = 0, max_col - 1 = 1, max_row - 0 = 2
@@ -114,11 +114,11 @@ class TestCellsToGridTop:
         assert grid[1][0] == [0, -1, 2, 1]
 
     def test_missing_cells(self):
-        cell_dicts = [
-            {"row_nums": [0], "column_nums": [0], "cell_text": "A"},
-            {"row_nums": [1], "column_nums": [1], "cell_text": "D"},
+        cell_list = [
+            TableCell(row_nums=[0], column_nums=[0], cell_text="A"),
+            TableCell(row_nums=[1], column_nums=[1], cell_text="D"),
         ]
-        grid = cell_dicts_to_grid_top(cell_dicts)
+        grid = cell_list_to_grid_top(cell_list)
         assert grid[0][0] == [0, 0, 1, 1]
         assert grid[0][1] == [0, 0, 1, 1]
         assert grid[1][0] == [0, 0, 1, 1]
@@ -278,34 +278,34 @@ class TestGritsTop:
         assert result.true_grid_scores.shape == (2, 2)
 
 
-class TestHtmlToCells:
+class TestHtmlToCellList:
     def test_simple_table(self):
         html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>"
-        cell_dicts = html_to_cell_dicts(html)
-        assert len(cell_dicts) == 4
-        assert cell_dicts[0]["cell_text"] == "A"
-        assert cell_dicts[0]["row_nums"] == [0]
-        assert cell_dicts[0]["column_nums"] == [0]
+        cell_list = html_to_cell_list(html)
+        assert len(cell_list) == 4
+        assert cell_list[0].cell_text == "A"
+        assert cell_list[0].row_nums == [0]
+        assert cell_list[0].column_nums == [0]
 
     def test_colspan(self):
         html = '<table><tr><td colspan="2">AB</td></tr><tr><td>C</td><td>D</td></tr></table>'
-        cell_dicts = html_to_cell_dicts(html)
-        assert len(cell_dicts) == 3
-        assert cell_dicts[0]["column_nums"] == [0, 1]
+        cell_list = html_to_cell_list(html)
+        assert len(cell_list) == 3
+        assert cell_list[0].column_nums == [0, 1]
 
     def test_rowspan(self):
         html = '<table><tr><td rowspan="2">AC</td><td>B</td></tr><tr><td>D</td></tr></table>'
-        cell_dicts = html_to_cell_dicts(html)
-        assert cell_dicts[0]["row_nums"] == [0, 1]
+        cell_list = html_to_cell_list(html)
+        assert cell_list[0].row_nums == [0, 1]
 
     def test_header_cell(self):
         html = "<table><tr><th>Header</th></tr><tr><td>Data</td></tr></table>"
-        cell_dicts = html_to_cell_dicts(html)
-        assert cell_dicts[0]["is_column_header"] is True
-        assert cell_dicts[1]["is_column_header"] is False
+        cell_list = html_to_cell_list(html)
+        assert cell_list[0].is_column_header is True
+        assert cell_list[1].is_column_header is False
 
     def test_invalid_html_returns_none(self):
-        assert html_to_cell_dicts("not valid xml at all <<<") is None
+        assert html_to_cell_list("not valid xml at all <<<") is None
 
 
 class TestIou:
@@ -793,73 +793,73 @@ class TestGritsEvaluator:
         assert "mean_grits_top_per_sample" in avg_results
         assert "mean_grits_loc_per_sample" not in avg_results
 
-    def test_eval_table_cell_dicts_perfect(self):
+    def test_eval_table_cell_lists_perfect(self):
         evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
-        cell_dicts = _make_simple_cell_dicts()
-        evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
+        cell_list = _make_simple_cell_list()
+        evaluator.eval_table_cell_lists([cell_list], [cell_list])
         results = evaluator.compute_grits()
         for metric in ("con", "loc", "top"):
             assert results[f"grits_{metric}"] == 1.0
 
-    def test_eval_table_cell_dicts_different_text(self):
+    def test_eval_table_cell_lists_different_text(self):
         evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
-        true_cell_dicts = _make_simple_cell_dicts()
-        pred_cell_dicts = [
-            {"row_nums": [0], "column_nums": [0], "cell_text": "X", "bbox": [0, 0, 10, 10]},
-            {"row_nums": [0], "column_nums": [1], "cell_text": "Y", "bbox": [10, 0, 20, 10]},
-            {"row_nums": [1], "column_nums": [0], "cell_text": "Z", "bbox": [0, 10, 10, 20]},
-            {"row_nums": [1], "column_nums": [1], "cell_text": "W", "bbox": [10, 10, 20, 20]},
+        true_cell_list = _make_simple_cell_list()
+        pred_cell_list = [
+            TableCell(row_nums=[0], column_nums=[0], cell_text="X", bbox=[0, 0, 10, 10]),
+            TableCell(row_nums=[0], column_nums=[1], cell_text="Y", bbox=[10, 0, 20, 10]),
+            TableCell(row_nums=[1], column_nums=[0], cell_text="Z", bbox=[0, 10, 10, 20]),
+            TableCell(row_nums=[1], column_nums=[1], cell_text="W", bbox=[10, 10, 20, 20]),
         ]
-        evaluator.eval_table_cell_dicts([true_cell_dicts], [pred_cell_dicts])
+        evaluator.eval_table_cell_lists([true_cell_list], [pred_cell_list])
         results = evaluator.compute_grits()
         assert results["grits_con"] == 0.0
         assert results["grits_loc"] == 1.0
         assert results["grits_top"] == 1.0
 
-    def test_eval_table_cell_dicts_list(self):
+    def test_eval_table_cell_lists_list(self):
         evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
-        cell_dicts_a = _make_simple_cell_dicts()
-        cell_dicts_b = [
-            {"row_nums": [0], "column_nums": [0], "cell_text": "X", "bbox": [0, 0, 5, 5]},
+        cell_list_a = _make_simple_cell_list()
+        cell_list_b = [
+            TableCell(row_nums=[0], column_nums=[0], cell_text="X", bbox=[0, 0, 5, 5]),
         ]
-        evaluator.eval_table_cell_dicts([cell_dicts_a, cell_dicts_b], [cell_dicts_a, cell_dicts_b])
+        evaluator.eval_table_cell_lists([cell_list_a, cell_list_b], [cell_list_a, cell_list_b])
         results = evaluator.compute_grits()
         for metric in ("con", "loc", "top"):
             assert results[f"grits_{metric}"] == 1.0
 
-    def test_eval_table_cell_dicts_different_bbox(self):
+    def test_eval_table_cell_lists_different_bbox(self):
         evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
-        true_cell_dicts = _make_simple_cell_dicts()
+        true_cell_list = _make_simple_cell_list()
         # Same text and structure, but shifted bboxes
-        pred_cell_dicts = [
-            {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [1, 1, 10, 10]},
-            {"row_nums": [0], "column_nums": [1], "cell_text": "B", "bbox": [11, 1, 20, 10]},
-            {"row_nums": [1], "column_nums": [0], "cell_text": "C", "bbox": [1, 11, 10, 20]},
-            {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [11, 11, 20, 20]},
+        pred_cell_list = [
+            TableCell(row_nums=[0], column_nums=[0], cell_text="A", bbox=[1, 1, 10, 10]),
+            TableCell(row_nums=[0], column_nums=[1], cell_text="B", bbox=[11, 1, 20, 10]),
+            TableCell(row_nums=[1], column_nums=[0], cell_text="C", bbox=[1, 11, 10, 20]),
+            TableCell(row_nums=[1], column_nums=[1], cell_text="D", bbox=[11, 11, 20, 20]),
         ]
-        evaluator.eval_table_cell_dicts([true_cell_dicts], [pred_cell_dicts])
+        evaluator.eval_table_cell_lists([true_cell_list], [pred_cell_list])
         results = evaluator.compute_grits()
         assert results["grits_con"] == 1.0
         assert results["grits_loc"] == pytest.approx(0.81, abs=1e-4)
         assert results["grits_top"] == 1.0
 
-    def test_eval_table_cell_dicts_different_structure(self):
+    def test_eval_table_cell_lists_different_structure(self):
         evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
-        true_cell_dicts = _make_simple_cell_dicts()
+        true_cell_list = _make_simple_cell_list()
         # Same text and bboxes, but one cell spans two columns
-        pred_cell_dicts = [
-            {"row_nums": [0], "column_nums": [0, 1], "cell_text": "A", "bbox": [0, 0, 10, 10]},
-            {"row_nums": [1], "column_nums": [0], "cell_text": "C", "bbox": [0, 10, 10, 20]},
-            {"row_nums": [1], "column_nums": [1], "cell_text": "D", "bbox": [10, 10, 20, 20]},
+        pred_cell_list = [
+            TableCell(row_nums=[0], column_nums=[0, 1], cell_text="A", bbox=[0, 0, 10, 10]),
+            TableCell(row_nums=[1], column_nums=[0], cell_text="C", bbox=[0, 10, 10, 20]),
+            TableCell(row_nums=[1], column_nums=[1], cell_text="D", bbox=[10, 10, 20, 20]),
         ]
-        evaluator.eval_table_cell_dicts([true_cell_dicts], [pred_cell_dicts])
+        evaluator.eval_table_cell_lists([true_cell_list], [pred_cell_list])
         results = evaluator.compute_grits()
         assert results["grits_top"] == 0.75
 
-    def test_eval_table_cell_dicts_subset_of_metrics(self):
+    def test_eval_table_cell_lists_subset_of_metrics(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
-        cell_dicts = _make_simple_cell_dicts()
-        evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
+        cell_list = _make_simple_cell_list()
+        evaluator.eval_table_cell_lists([cell_list], [cell_list])
         results = evaluator.compute_grits()
         assert results["grits_con"] == 1.0
         assert results["grits_top"] == 1.0
@@ -888,13 +888,13 @@ class TestGritsEvaluator:
         with pytest.raises(TypeError, match="eval_htmls expects lists"):
             evaluator.eval_htmls(html, html)
 
-    def test_eval_table_cell_dicts_single_list_raises(self):
+    def test_eval_table_cell_lists_single_list_raises(self):
         evaluator = GritsEvaluator()
-        cell_dicts = [
-            {"row_nums": [0], "column_nums": [0], "cell_text": "A", "bbox": [0, 0, 1, 1]},
+        cell_list = [
+            TableCell(row_nums=[0], column_nums=[0], cell_text="A", bbox=[0, 0, 1, 1]),
         ]
-        with pytest.raises(TypeError, match="eval_table_cell_dicts expects a list of lists"):
-            evaluator.eval_table_cell_dicts(cell_dicts, cell_dicts)
+        with pytest.raises(TypeError, match="eval_table_cell_lists expects a list of lists"):
+            evaluator.eval_table_cell_lists(cell_list, cell_list)
 
     def test_mismatched_sample_counts_raises(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
@@ -991,3 +991,87 @@ class TestHtmlIntegration:
         assert counts["num_samples"] == 2
         assert counts["num_true_tables"] == 2
         assert counts["num_pred_tables"] == 2
+
+
+class TestTableCell:
+    def test_construction_all_fields(self):
+        cell = TableCell(
+            row_nums=[0, 1],
+            column_nums=[0],
+            cell_text="hello",
+            bbox=[0.0, 0.0, 10.0, 20.0],
+            is_column_header=True,
+        )
+        assert cell.row_nums == [0, 1]
+        assert cell.column_nums == [0]
+        assert cell.cell_text == "hello"
+        assert cell.bbox == [0.0, 0.0, 10.0, 20.0]
+        assert cell.is_column_header is True
+
+    def test_construction_defaults(self):
+        cell = TableCell(row_nums=[0], column_nums=[1])
+        assert cell.cell_text == ""
+        assert cell.bbox is None
+        assert cell.is_column_header is False
+
+    def test_from_dict_all_keys(self):
+        d = {
+            "row_nums": [0],
+            "column_nums": [1],
+            "cell_text": "A",
+            "bbox": [0, 0, 10, 10],
+            "is_column_header": True,
+        }
+        cell = TableCell.from_dict(d)
+        assert cell.row_nums == [0]
+        assert cell.column_nums == [1]
+        assert cell.cell_text == "A"
+        assert cell.bbox == [0, 0, 10, 10]
+        assert cell.is_column_header is True
+
+    def test_from_dict_minimal_keys(self):
+        d = {"row_nums": [0], "column_nums": [1]}
+        cell = TableCell.from_dict(d)
+        assert cell.cell_text == ""
+        assert cell.bbox is None
+        assert cell.is_column_header is False
+
+    def test_from_dict_ignores_extra_keys(self):
+        d = {"row_nums": [0], "column_nums": [1], "extra_field": 42, "another": "value"}
+        cell = TableCell.from_dict(d)
+        assert cell.row_nums == [0]
+        assert cell.column_nums == [1]
+        assert not hasattr(cell, "extra_field")
+
+    def test_to_dict_with_bbox(self):
+        cell = TableCell(
+            row_nums=[0], column_nums=[1], cell_text="A", bbox=[0, 0, 10, 10], is_column_header=True
+        )
+        d = cell.to_dict()
+        assert d == {
+            "row_nums": [0],
+            "column_nums": [1],
+            "cell_text": "A",
+            "bbox": [0, 0, 10, 10],
+            "is_column_header": True,
+        }
+
+    def test_to_dict_without_bbox(self):
+        cell = TableCell(row_nums=[0], column_nums=[1], cell_text="A")
+        d = cell.to_dict()
+        assert d == {
+            "row_nums": [0],
+            "column_nums": [1],
+            "cell_text": "A",
+            "is_column_header": False,
+        }
+        assert "bbox" not in d
+
+    def test_round_trip(self):
+        cell = TableCell(row_nums=[0, 1], column_nums=[2], cell_text="X", bbox=[1, 2, 3, 4])
+        assert TableCell.from_dict(cell.to_dict()) == cell
+
+    def test_frozen(self):
+        cell = TableCell(row_nums=[0], column_nums=[0])
+        with pytest.raises(AttributeError):
+            cell.cell_text = "changed"

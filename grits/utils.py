@@ -1,17 +1,60 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 from collections import defaultdict
+import dataclasses
 from typing import Any
 import xml.etree.ElementTree as ET
 
 
-def html_to_cell_dicts(table_html: str) -> list[dict[str, Any]] | None:
+@dataclasses.dataclass(frozen=True, slots=True)
+class TableCell:
+    """A single cell in a table.
+
+    Attributes:
+        row_nums: Row indices occupied by this cell.
+        column_nums: Column indices occupied by this cell.
+        cell_text: Text content of the cell.
+        bbox: Bounding box [x_min, y_min, x_max, y_max] of the cell.
+        is_column_header: Whether this cell is a column header.
+    """
+
+    row_nums: list[int]
+    column_nums: list[int]
+    cell_text: str = ""
+    bbox: list[float] | None = None
+    is_column_header: bool = False
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "TableCell":
+        """Create a TableCell from a cell dict. Extra keys are ignored."""
+        return cls(
+            row_nums=d["row_nums"],
+            column_nums=d["column_nums"],
+            cell_text=d.get("cell_text", ""),
+            bbox=d.get("bbox"),
+            is_column_header=d.get("is_column_header", False),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to a cell dict."""
+        d: dict[str, Any] = {
+            "row_nums": self.row_nums,
+            "column_nums": self.column_nums,
+            "cell_text": self.cell_text,
+            "is_column_header": self.is_column_header,
+        }
+        if self.bbox is not None:
+            d["bbox"] = self.bbox
+        return d
+
+
+def html_to_cell_list(table_html: str) -> list[TableCell] | None:
     """Parse an HTML representation of a table into a list of cells.
 
     Args:
         table_html: HTML string of the table to parse.
 
     Returns:
-        A list of cell dicts with 'row_nums', 'column_nums', 'is_column_header', and 'cell_text',
+        A list of TableCell objects with row_nums, column_nums, is_column_header, and cell_text,
         or None if the HTML cannot be parsed.
     """
     try:
@@ -56,12 +99,13 @@ def html_to_cell_dicts(table_html: str) -> list[dict[str, Any]] | None:
             for row_num in row_nums:
                 occupied_columns_by_row[row_num].update(column_nums)
 
-            cell_dict: dict[str, Any] = {}
-            cell_dict["row_nums"] = row_nums
-            cell_dict["column_nums"] = column_nums
-            cell_dict["is_column_header"] = current.tag == "th" or in_header
-            cell_dict["cell_text"] = " ".join(current.itertext())
-            table_cells.append(cell_dict)
+            cell = TableCell(
+                row_nums=row_nums,
+                column_nums=column_nums,
+                is_column_header=current.tag == "th" or in_header,
+                cell_text=" ".join(current.itertext()),
+            )
+            table_cells.append(cell)
 
         children = list(current)
         for child in children[::-1]:

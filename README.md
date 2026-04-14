@@ -39,24 +39,24 @@ Requires Python >= 3.10.
 Here we illustrate a basic example converting two tables to their grid representations, then calculating GriTS-Con.
 
 ```python
-from grits import grits_con, cell_dicts_to_grid_con
+from grits import TableCell, grits_con, cell_list_to_grid_con
 
-# Define ground-truth and predicted tables as lists of cell dicts
+# Define ground-truth and predicted tables as lists of TableCells
 true_cells = [
-    {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
-    {"row_nums": [0], "column_nums": [1], "cell_text": "Score"},
-    {"row_nums": [1], "column_nums": [0], "cell_text": "Alice"},
-    {"row_nums": [1], "column_nums": [1], "cell_text": "95"},
+    TableCell(row_nums=[0], column_nums=[0], cell_text="Name"),
+    TableCell(row_nums=[0], column_nums=[1], cell_text="Score"),
+    TableCell(row_nums=[1], column_nums=[0], cell_text="Alice"),
+    TableCell(row_nums=[1], column_nums=[1], cell_text="95"),
 ]
 pred_cells = [
-    {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
-    {"row_nums": [0], "column_nums": [1], "cell_text": "Score"},
-    {"row_nums": [1], "column_nums": [0], "cell_text": "Alice"},
-    {"row_nums": [1], "column_nums": [1], "cell_text": "90"},
+    TableCell(row_nums=[0], column_nums=[0], cell_text="Name"),
+    TableCell(row_nums=[0], column_nums=[1], cell_text="Score"),
+    TableCell(row_nums=[1], column_nums=[0], cell_text="Alice"),
+    TableCell(row_nums=[1], column_nums=[1], cell_text="90"),
 ]
 
-true_grid_con = cell_dicts_to_grid_con(true_cells)
-pred_grid_con = cell_dicts_to_grid_con(pred_cells)
+true_grid_con = cell_list_to_grid_con(true_cells)
+pred_grid_con = cell_list_to_grid_con(pred_cells)
 
 grits_con_score, grits_con_precision, grits_con_recall = grits_con(true_grid_con, pred_grid_con)
 
@@ -76,7 +76,7 @@ Use `GritsEvaluator` to accumulate results across a dataset and compute aggregat
 In this example, we track a single metric type, GriTS-Con.
 
 ```python
-from grits import GritsEvaluator, cell_dicts_to_grid_con
+from grits import GritsEvaluator, TableCell, cell_list_to_grid_con
 
 evaluator = GritsEvaluator(metrics=["con"])
 
@@ -86,38 +86,38 @@ pred_samples = []
 # Create two data samples
 # Sample 1
 true_cells_1 = [
-    {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
-    {"row_nums": [0], "column_nums": [1], "cell_text": "Score"},
-    {"row_nums": [1], "column_nums": [0], "cell_text": "Alice"},
-    {"row_nums": [1], "column_nums": [1], "cell_text": "95"},
+    TableCell(row_nums=[0], column_nums=[0], cell_text="Name"),
+    TableCell(row_nums=[0], column_nums=[1], cell_text="Score"),
+    TableCell(row_nums=[1], column_nums=[0], cell_text="Alice"),
+    TableCell(row_nums=[1], column_nums=[1], cell_text="95"),
 ]
-true_grid_con_1 = cell_dicts_to_grid_con(true_cells_1)
+true_grid_con_1 = cell_list_to_grid_con(true_cells_1)
 true_samples.append(true_grid_con_1)
 
 pred_cells_1 = [
-    {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
-    {"row_nums": [0], "column_nums": [1], "cell_text": "Score"},
-    {"row_nums": [1], "column_nums": [0], "cell_text": "Alice"},
-    {"row_nums": [1], "column_nums": [1], "cell_text": "90"},
+    TableCell(row_nums=[0], column_nums=[0], cell_text="Name"),
+    TableCell(row_nums=[0], column_nums=[1], cell_text="Score"),
+    TableCell(row_nums=[1], column_nums=[0], cell_text="Alice"),
+    TableCell(row_nums=[1], column_nums=[1], cell_text="90"),
 ]
-pred_grid_con_1 = cell_dicts_to_grid_con(pred_cells_1)
+pred_grid_con_1 = cell_list_to_grid_con(pred_cells_1)
 pred_samples.append(pred_grid_con_1)
 
 # Sample 2
 true_cells_2 = [
-    {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
-    {"row_nums": [0], "column_nums": [1], "cell_text": "Score"},
-    {"row_nums": [1], "column_nums": [0], "cell_text": "Bob"},
-    {"row_nums": [1], "column_nums": [1], "cell_text": "85"},
+    TableCell(row_nums=[0], column_nums=[0], cell_text="Name"),
+    TableCell(row_nums=[0], column_nums=[1], cell_text="Score"),
+    TableCell(row_nums=[1], column_nums=[0], cell_text="Bob"),
+    TableCell(row_nums=[1], column_nums=[1], cell_text="85"),
 ]
-true_grid_con_2 = cell_dicts_to_grid_con(true_cells_2)
+true_grid_con_2 = cell_list_to_grid_con(true_cells_2)
 true_samples.append(true_grid_con_2)
 
 pred_cells_2 = [
-    {"row_nums": [0], "column_nums": [0], "cell_text": "Name"},
-    {"row_nums": [0], "column_nums": [1], "cell_text": "Bob"}
+    TableCell(row_nums=[0], column_nums=[0], cell_text="Name"),
+    TableCell(row_nums=[0], column_nums=[1], cell_text="Bob"),
 ]
-pred_grid_con_2 = cell_dicts_to_grid_con(pred_cells_2)
+pred_grid_con_2 = cell_list_to_grid_con(pred_cells_2)
 pred_samples.append(pred_grid_con_2)
 
 # Iterate over samples and evaluate each
@@ -153,11 +153,11 @@ print(f"GriTS_Con: {results['grits_con']:.4f}") # GriTS_Con: 0.8750
 ### Converting table formats, from HTML tables to grids
 
 ```python
-from grits import html_to_cell_dicts, cell_dicts_to_grid_con, cell_dicts_to_grid_top
+from grits import html_to_cell_list, cell_list_to_grid_con, cell_list_to_grid_top
 
-cell_dicts = html_to_cell_dicts("<table><tr><td>A</td><td>B</td></tr></table>")
-grid_con = cell_dicts_to_grid_con(cell_dicts)
-grid_top = cell_dicts_to_grid_top(cell_dicts)
+cell_list = html_to_cell_list("<table><tr><td>A</td><td>B</td></tr></table>")
+grid_con = cell_list_to_grid_con(cell_list)
+grid_top = cell_list_to_grid_top(cell_list)
 
 print(grid_con) # [['A', 'B']]
 print(grid_top) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
