@@ -678,7 +678,7 @@ class TestGritsEvaluator:
 
     def test_eval_htmls_perfect_score(self):
         html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         evaluator.eval_htmls([html], [html])
         results = evaluator.compute_grits()
         for metric in ("con", "top"):
@@ -689,7 +689,7 @@ class TestGritsEvaluator:
     def test_eval_htmls_different_tables(self):
         true_html = "<table><tr><td>A</td><td>B</td></tr></table>"
         pred_html = "<table><tr><td>A</td><td>X</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         evaluator.eval_htmls([true_html], [pred_html])
         results = evaluator.compute_grits()
         # "top" should be perfect (same structure), "con" should not (different text)
@@ -697,7 +697,7 @@ class TestGritsEvaluator:
         assert results["grits_con"] < 1.0
 
     def test_eval_htmls_invalid_html_raises(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         with pytest.raises(ValueError, match="Failed to parse true_html"):
             evaluator.eval_htmls(["not valid html<><<"], ["<table><tr><td>A</td></tr></table>"])
         with pytest.raises(ValueError, match="Failed to parse pred_html"):
@@ -706,7 +706,7 @@ class TestGritsEvaluator:
     def test_eval_htmls_list_perfect_score(self):
         html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
         html_b = "<table><tr><td>X</td><td>Y</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         evaluator.eval_htmls([html_a, html_b], [html_a, html_b])
         results = evaluator.compute_grits()
         for metric in ("con", "top"):
@@ -715,7 +715,7 @@ class TestGritsEvaluator:
     def test_eval_htmls_list_hungarian_matching(self):
         html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
         html_b = "<table><tr><td>X</td><td>Y</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         # Swapped order — Hungarian matching should pair them optimally
         evaluator.eval_htmls([html_a, html_b], [html_b, html_a])
         results = evaluator.compute_grits()
@@ -723,7 +723,7 @@ class TestGritsEvaluator:
             assert results[f"grits_{metric}"] == 1.0
 
     def test_eval_htmls_list_invalid_raises(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         with pytest.raises(ValueError, match="Failed to parse true_html"):
             evaluator.eval_htmls(
                 ["<table><tr><td>A</td></tr></table>", "not valid<<>"],
@@ -735,15 +735,23 @@ class TestGritsEvaluator:
                 ["not valid<<>"],
             )
 
-    def test_eval_htmls_missing_metric_raises(self):
-        evaluator = GritsEvaluator(metrics=["con"])
-        with pytest.raises(ValueError, match="eval_htmls requires both"):
+    def test_eval_htmls_loc_metric_raises(self):
+        evaluator = GritsEvaluator(metrics=["con", "loc"])
+        with pytest.raises(ValueError, match="eval_htmls cannot evaluate the 'loc' metric"):
             evaluator.eval_htmls(
                 ["<table><tr><td>A</td></tr></table>"], ["<table><tr><td>A</td></tr></table>"]
             )
 
+    def test_eval_htmls_single_metric(self):
+        html = "<table><tr><td>A</td><td>B</td></tr></table>"
+        evaluator = GritsEvaluator(metrics=["con"])
+        evaluator.eval_htmls([html], [html])
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 1.0
+        assert "grits_top" not in results
+
     def test_omits_metrics_without_samples(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         html = "<table><tr><td>A</td></tr></table>"
         evaluator.eval_htmls([html], [html])
         results = evaluator.compute_grits()

@@ -995,10 +995,10 @@ class GritsEvaluator:
         """Initialize the evaluator with the specified metrics.
 
         Args:
-            metrics: List of metric names to track. Defaults to ["con", "loc", "top"].
+            metrics: List of metric names to track from among ["con", "top", "loc"]. Defaults to ["con", "top"].
         """
         if metrics is None:
-            metrics = ["con", "loc", "top"]
+            metrics = ["con", "top"]
         self._evaluators = {metric: _GritsMetricEvaluator(metric=metric) for metric in metrics}
 
     @property
@@ -1044,7 +1044,10 @@ class GritsEvaluator:
         self._evaluators[metric].eval_grids(true_grids, pred_grids)
 
     def eval_htmls(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
-        """Parse HTML tables and evaluate the con and top metrics.
+        """Parse HTML tables and evaluate the configured metrics.
+
+        HTML tables do not contain bounding box information, so the 'loc' metric
+        cannot be evaluated with this method.
 
         Args:
             true_htmls: List of HTML strings of ground truth tables.
@@ -1053,36 +1056,32 @@ class GritsEvaluator:
         Raises:
             TypeError: If a bare string is passed instead of a list of strings.
             ValueError: If any HTML string cannot be parsed, or if the evaluator
-                is not tracking both "con" and "top" metrics.
+                is tracking the 'loc' metric.
         """
         if isinstance(true_htmls, str) or isinstance(pred_htmls, str):  # type: ignore[unreachable]
             raise TypeError("eval_htmls expects lists of HTML strings, not a single string.")
-        missing = {"con", "top"} - set(self._evaluators)
-        if missing:
+        if "loc" in self._evaluators:
             raise ValueError(
-                f"eval_htmls requires both 'con' and 'top' metrics, but missing: {missing}"
+                "eval_htmls cannot evaluate the 'loc' metric because HTML tables "
+                "do not contain bounding box information. "
+                "Initialize GritsEvaluator() without 'loc' to proceed with evaluation."
             )
 
-        true_grids_con = []
-        true_grids_top = []
+        true_cell_dicts = []
         for true_html in true_htmls:
-            true_cell_dicts = html_to_cell_dicts(true_html)
-            if true_cell_dicts is None:
+            cell_dicts = html_to_cell_dicts(true_html)
+            if cell_dicts is None:
                 raise ValueError(f"Failed to parse true_html: {true_html!r}")
-            true_grids_con.append(cell_dicts_to_grid_con(true_cell_dicts))
-            true_grids_top.append(cell_dicts_to_grid_top(true_cell_dicts))
+            true_cell_dicts.append(cell_dicts)
 
-        pred_grids_con = []
-        pred_grids_top = []
+        pred_cell_dicts = []
         for pred_html in pred_htmls:
-            pred_cell_dicts = html_to_cell_dicts(pred_html)
-            if pred_cell_dicts is None:
+            cell_dicts = html_to_cell_dicts(pred_html)
+            if cell_dicts is None:
                 raise ValueError(f"Failed to parse pred_html: {pred_html!r}")
-            pred_grids_con.append(cell_dicts_to_grid_con(pred_cell_dicts))
-            pred_grids_top.append(cell_dicts_to_grid_top(pred_cell_dicts))
+            pred_cell_dicts.append(cell_dicts)
 
-        self._evaluators["con"].eval_grids(true_grids_con, pred_grids_con)
-        self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
+        self.eval_table_cell_dicts(true_cell_dicts, pred_cell_dicts)
 
     _GRID_CONVERSION_FUNCTIONS: dict[str, Callable[[list[dict[str, Any]]], list[list[Any]]]] = {
         "con": cell_dicts_to_grid_con,
