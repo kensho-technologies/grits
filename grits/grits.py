@@ -893,6 +893,21 @@ class _GritsMetricEvaluator:
         self.num_exact_grid_matches.append(num_exact_grid_matches)
         self.num_exact_cell_matches.append(num_exact_cell_matches)
 
+    def compute_counts(self) -> dict[str, int]:
+        """Compute the counts of samples, tables, and cells.
+
+        Returns:
+            Dict with keys num_samples, num_true_tables, num_pred_tables,
+            num_true_cells, and num_pred_cells.
+        """
+        return {
+            "num_samples": len(self.true_positive_scores),
+            "num_true_tables": sum(self.num_true_grids),
+            "num_pred_tables": sum(self.num_pred_grids),
+            "num_true_cells": sum(self.num_true_cells),
+            "num_pred_cells": sum(self.num_pred_cells),
+        }
+
     def compute_grits(self) -> dict[str, float]:
         """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
 
@@ -1129,6 +1144,28 @@ class GritsEvaluator:
         }
         if len(set(counts.values())) > 1:
             raise ValueError(f"Mismatched sample counts across metrics: {counts}")
+
+    def compute_counts(self) -> dict[str, int]:
+        """Compute the counts of samples, tables, and cells.
+
+        Returns:
+            Dict with keys num_samples, num_true_tables, num_pred_tables,
+            num_true_cells, and num_pred_cells.
+
+        Raises:
+            ValueError: If evaluated metrics have different numbers of samples.
+        """
+        self._check_sample_counts()
+        for ev in self._evaluators.values():
+            if len(ev.true_positive_scores) > 0:
+                return ev.compute_counts()
+        return {
+            "num_samples": 0,
+            "num_true_tables": 0,
+            "num_pred_tables": 0,
+            "num_true_cells": 0,
+            "num_pred_cells": 0,
+        }
 
     def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.
