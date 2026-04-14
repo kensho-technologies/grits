@@ -68,6 +68,15 @@ def cell_dicts_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
 def cell_dicts_to_grid_top(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cell dicts to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
 
+    For the cell at grid location (i,j), let a(i,j) be its rowspan,
+    let β(i,j) be its colspan, let p(i,j) be the minimum row it occupies,
+    and let θ(i,j) be the minimum column it occupies. Its relative span is
+    bounding box [θ(i,j)-j, p(i,j)-i, θ(i,j)-j+β(i,j), p(i,j)-i+a(i,j)].
+
+    It gives the size and location of the cell each grid cell belongs to
+    relative to the current grid cell location, in grid coordinate units.
+    Note that for a non-spanning cell this will always be [0, 0, 1, 1].
+
     Args:
         cell_dicts: List of cell dicts with 'row_nums' and 'column_nums'.
 
@@ -546,16 +555,7 @@ def _convert_grid_elements_to_bbox_and_area(grid: list[list]) -> list[list[tuple
 def grits_top_matching(
     true_grid_top: list[list[list[int]]], pred_grid_top: list[list[list[int]]]
 ) -> GritsMatchingResult:
-    """Compute GriTS_Top given two matrices of cell relative spans.
-
-    For the cell at grid location (i,j), let a(i,j) be its rowspan,
-    let β(i,j) be its colspan, let p(i,j) be the minimum row it occupies,
-    and let θ(i,j) be the minimum column it occupies. Its relative span is
-    bounding box [θ(i,j)-j, p(i,j)-i, θ(i,j)-j+β(i,j), p(i,j)-i+a(i,j)].
-
-    It gives the size and location of the cell each grid cell belongs to
-    relative to the current grid cell location, in grid coordinate units.
-    Note that for a non-spanning cell this will always be [0, 0, 1, 1].
+    """Compute the GriTS_Top true positive score, given two matrices of cell relative spans.
 
     Args:
         true_grid_top: Ground truth relative span grid
@@ -574,7 +574,7 @@ def grits_top_matching(
 def grits_loc_matching(
     true_grid_loc: list[list[list[int | float]]], pred_grid_loc: list[list[list[int | float]]]
 ) -> GritsMatchingResult:
-    """Compute GriTS_Loc given two matrices of cell bounding boxes.
+    """Compute the GriTS_Loc true positive score, given two matrices of cell bounding boxes.
 
     This calculates the spatial location similarity.
 
@@ -632,7 +632,7 @@ def grits_loc(
 def grits_con_matching(
     true_grid_con: list[list[str]], pred_grid_con: list[list[str]]
 ) -> GritsMatchingResult:
-    """Compute GriTS_Con given two matrices of cell text strings.
+    """Compute the GriTS_Con true positive score, given two matrices of cell text strings.
 
     Args:
         true_grid_con: Ground truth text grid
