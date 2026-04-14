@@ -68,6 +68,15 @@ def cell_dicts_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
 def cell_dicts_to_grid_top(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
     """Convert from a list of cell dicts to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
 
+    For the cell at grid location (i,j), let a(i,j) be its rowspan,
+    let β(i,j) be its colspan, let p(i,j) be the minimum row it occupies,
+    and let θ(i,j) be the minimum column it occupies. Its relative span is
+    bounding box [θ(i,j)-j, p(i,j)-i, θ(i,j)-j+β(i,j), p(i,j)-i+a(i,j)].
+
+    It gives the size and location of the cell each grid cell belongs to
+    relative to the current grid cell location, in grid coordinate units.
+    Note that for a non-spanning cell this will always be [0, 0, 1, 1].
+
     Args:
         cell_dicts: List of cell dicts with 'row_nums' and 'column_nums'.
 
@@ -345,7 +354,7 @@ def _get_n_cols(grid: list[list[Any]]) -> int:
 
 
 @dataclasses.dataclass(frozen=True)
-class GritsResult:
+class GritsMatchingResult:
     """Result of computing a GriTS metric for a single pair of grids."""
 
     true_positive_score: float
@@ -357,7 +366,7 @@ class GritsResult:
 
 def factored_2dmss(
     true_grid: np.ndarray, pred_grid: np.ndarray, reward_function: Callable
-) -> GritsResult:
+) -> GritsMatchingResult:
     """Factored 2D-MSS: Factored two-dimensional most-similar substructures
 
     This is a polynomial-time heuristic to computing the 2D-MSS of two matrices,
@@ -375,7 +384,7 @@ def factored_2dmss(
         reward_function: Function to compute similarity between cells
 
     Returns:
-        GritsResult with the scoring results.
+        GritsMatchingResult with the scoring results.
     """
     true_grid_n_rows = len(true_grid)
     true_grid_n_cols = _get_n_cols(true_grid.tolist())
@@ -401,7 +410,7 @@ def factored_2dmss(
             true_positive_score += cell_score
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
             is_exact_match = true_positive_score == num_true_cells == num_pred_cells
-            return GritsResult(
+            return GritsMatchingResult(
                 true_positive_score=true_positive_score,
                 true_positive_score_upper_bound=true_positive_score,
                 true_grid_scores=grid_scores,
@@ -444,7 +453,7 @@ def factored_2dmss(
             true_positive_score += cell_score
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
             is_exact_match = true_positive_score == num_true_cells == num_pred_cells
-            return GritsResult(
+            return GritsMatchingResult(
                 true_positive_score=true_positive_score,
                 true_positive_score_upper_bound=true_positive_score,
                 true_grid_scores=true_grid_scores,
@@ -471,7 +480,7 @@ def factored_2dmss(
             true_positive_score += grid_cell_score
 
     is_exact_match = true_positive_score == num_true_cells == num_pred_cells
-    return GritsResult(
+    return GritsMatchingResult(
         true_positive_score=true_positive_score,
         true_positive_score_upper_bound=true_positive_score_upper_bound,
         true_grid_scores=true_grid_scores,
@@ -545,24 +554,15 @@ def _convert_grid_elements_to_bbox_and_area(grid: list[list]) -> list[list[tuple
 
 def grits_top_matching(
     true_grid_top: list[list[list[int]]], pred_grid_top: list[list[list[int]]]
-) -> GritsResult:
-    """Compute GriTS_Top given two matrices of cell relative spans.
-
-    For the cell at grid location (i,j), let a(i,j) be its rowspan,
-    let β(i,j) be its colspan, let p(i,j) be the minimum row it occupies,
-    and let θ(i,j) be the minimum column it occupies. Its relative span is
-    bounding box [θ(i,j)-j, p(i,j)-i, θ(i,j)-j+β(i,j), p(i,j)-i+a(i,j)].
-
-    It gives the size and location of the cell each grid cell belongs to
-    relative to the current grid cell location, in grid coordinate units.
-    Note that for a non-spanning cell this will always be [0, 0, 1, 1].
+) -> GritsMatchingResult:
+    """Compute the GriTS_Top true positive score, given two matrices of cell relative spans.
 
     Args:
         true_grid_top: Ground truth relative span grid
         pred_grid_top: Predicted relative span grid
 
     Returns:
-        GritsResult with the scoring results.
+        GritsMatchingResult with the scoring results.
     """
     return factored_2dmss(
         np.array(_convert_grid_elements_to_bbox_and_area(true_grid_top)),
@@ -573,8 +573,8 @@ def grits_top_matching(
 
 def grits_loc_matching(
     true_grid_loc: list[list[list[int | float]]], pred_grid_loc: list[list[list[int | float]]]
-) -> GritsResult:
-    """Compute GriTS_Loc given two matrices of cell bounding boxes.
+) -> GritsMatchingResult:
+    """Compute the GriTS_Loc true positive score, given two matrices of cell bounding boxes.
 
     This calculates the spatial location similarity.
 
@@ -583,7 +583,7 @@ def grits_loc_matching(
         pred_grid_loc: Predicted bounding box grid.
 
     Returns:
-        GritsResult with the scoring results.
+        GritsMatchingResult with the scoring results.
     """
 
     return factored_2dmss(
@@ -631,15 +631,15 @@ def grits_loc(
 
 def grits_con_matching(
     true_grid_con: list[list[str]], pred_grid_con: list[list[str]]
-) -> GritsResult:
-    """Compute GriTS_Con given two matrices of cell text strings.
+) -> GritsMatchingResult:
+    """Compute the GriTS_Con true positive score, given two matrices of cell text strings.
 
     Args:
         true_grid_con: Ground truth text grid
         pred_grid_con: Predicted text grid
 
     Returns:
-        GritsResult with the scoring results.
+        GritsMatchingResult with the scoring results.
     """
     return factored_2dmss(
         np.array(true_grid_con, dtype=object),
@@ -667,7 +667,7 @@ def grits_con(
 
 
 @dataclasses.dataclass(frozen=True)
-class HungarianGritsResult:
+class HungarianGritsMatchingResult:
     """Result of computing GriTS metrics across multiple grids using Hungarian matching."""
 
     true_positive_score: float
@@ -681,7 +681,7 @@ class HungarianGritsResult:
 
 def _hungarian_grits_matching(
     true_grids: list, pred_grids: list, grits_function: Callable
-) -> HungarianGritsResult:
+) -> HungarianGritsMatchingResult:
     """Compute GriTS metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Uses the Hungarian algorithm to find the best match between lists of true and predicted grids, and computes the true positive score for the matched pairs.
@@ -692,7 +692,7 @@ def _hungarian_grits_matching(
         grits_function: Scoring function to compare a pair of grids (e.g. grits_con_matching, grits_top_matching, or grits_loc_matching)
 
     Returns:
-        HungarianGritsResult with the matching results.
+        HungarianGritsMatchingResult with the matching results.
     """
     num_true_grids = len(true_grids)
     num_pred_grids = len(pred_grids)
@@ -730,7 +730,7 @@ def _hungarian_grits_matching(
     true_positive_score = float(true_positive_scores_per_grid.sum())
     true_positive_score_upper_bound = float(true_positive_scores_upper_bound.sum())
 
-    return HungarianGritsResult(
+    return HungarianGritsMatchingResult(
         true_positive_score=true_positive_score,
         true_positive_score_upper_bound=true_positive_score_upper_bound,
         true_grid_scores=true_grid_scores,
@@ -743,7 +743,7 @@ def _hungarian_grits_matching(
 
 def hungarian_grits_top_matching(
     true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]
-) -> HungarianGritsResult:
+) -> HungarianGritsMatchingResult:
     """Compute GriTS_Top metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -751,14 +751,35 @@ def hungarian_grits_top_matching(
         pred_grids_top: List of predicted relative span grids
 
     Returns:
-        HungarianGritsResult with the matching results.
+        HungarianGritsMatchingResult with the matching results.
     """
     return _hungarian_grits_matching(true_grids_top, pred_grids_top, grits_top_matching)
 
 
+def hungarian_grits_top(
+    true_grids_top: list[list[list[list[int]]]], pred_grids_top: list[list[list[list[int]]]]
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Top F-score, precision, and recall across multiple relative span grids.
+
+    Uses the Hungarian algorithm to find the optimal one-to-one matching between
+    true and predicted grids before computing the aggregate score.
+
+    Args:
+        true_grids_top: List of ground truth relative span grids
+        pred_grids_top: List of predicted relative span grids
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = hungarian_grits_top_matching(true_grids_top, pred_grids_top)
+    num_true_cells = sum(len(g) * _get_n_cols(g) for g in true_grids_top)
+    num_pred_cells = sum(len(g) * _get_n_cols(g) for g in pred_grids_top)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
+
+
 def hungarian_grits_con_matching(
     true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
-) -> HungarianGritsResult:
+) -> HungarianGritsMatchingResult:
     """Compute GriTS_Con metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -766,15 +787,36 @@ def hungarian_grits_con_matching(
         pred_grids_con: List of predicted text content grids
 
     Returns:
-        HungarianGritsResult with the matching results.
+        HungarianGritsMatchingResult with the matching results.
     """
     return _hungarian_grits_matching(true_grids_con, pred_grids_con, grits_con_matching)
+
+
+def hungarian_grits_con(
+    true_grids_con: list[list[list[str]]], pred_grids_con: list[list[list[str]]]
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Con F-score, precision, and recall across multiple text grids.
+
+    Uses the Hungarian algorithm to find the optimal one-to-one matching between
+    true and predicted grids before computing the aggregate score.
+
+    Args:
+        true_grids_con: List of ground truth text content grids
+        pred_grids_con: List of predicted text content grids
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = hungarian_grits_con_matching(true_grids_con, pred_grids_con)
+    num_true_cells = sum(len(g) * _get_n_cols(g) for g in true_grids_con)
+    num_pred_cells = sum(len(g) * _get_n_cols(g) for g in pred_grids_con)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
 
 
 def hungarian_grits_loc_matching(
     true_grids_loc: list[list[list[list[int | float]]]],
     pred_grids_loc: list[list[list[list[int | float]]]],
-) -> HungarianGritsResult:
+) -> HungarianGritsMatchingResult:
     """Compute GriTS_Loc metrics across multiple grids using Hungarian algorithm for optimal matching.
 
     Args:
@@ -782,15 +824,37 @@ def hungarian_grits_loc_matching(
         pred_grids_loc: List of predicted bounding box grids
 
     Returns:
-        HungarianGritsResult with the matching results.
+        HungarianGritsMatchingResult with the matching results.
     """
     return _hungarian_grits_matching(true_grids_loc, pred_grids_loc, grits_loc_matching)
+
+
+def hungarian_grits_loc(
+    true_grids_loc: list[list[list[list[int | float]]]],
+    pred_grids_loc: list[list[list[list[int | float]]]],
+) -> tuple[float, float, float]:
+    """Compute the GriTS_Loc F-score, precision, and recall across multiple bounding box grids.
+
+    Uses the Hungarian algorithm to find the optimal one-to-one matching between
+    true and predicted grids before computing the aggregate score.
+
+    Args:
+        true_grids_loc: List of ground truth bounding box grids
+        pred_grids_loc: List of predicted bounding box grids
+
+    Returns:
+        A tuple containing (F1-score, Precision, Recall).
+    """
+    result = hungarian_grits_loc_matching(true_grids_loc, pred_grids_loc)
+    num_true_cells = sum(len(g) * _get_n_cols(g) for g in true_grids_loc)
+    num_pred_cells = sum(len(g) * _get_n_cols(g) for g in pred_grids_loc)
+    return compute_fscore(result.true_positive_score, num_true_cells, num_pred_cells)
 
 
 class _GritsMetricEvaluator:
     """Accumulates results from GriTS evaluation calls for a single metric and computes aggregate scores."""
 
-    _METRIC_FUNCTIONS: dict[str, Callable[[list, list], HungarianGritsResult]] = {
+    _METRIC_FUNCTIONS: dict[str, Callable[[list, list], HungarianGritsMatchingResult]] = {
         "con": hungarian_grits_con_matching,
         "loc": hungarian_grits_loc_matching,
         "top": hungarian_grits_top_matching,
@@ -801,9 +865,9 @@ class _GritsMetricEvaluator:
         if metric not in self._METRIC_FUNCTIONS:
             raise ValueError(f"metric must be one of {set(self._METRIC_FUNCTIONS)}, got {metric!r}")
         self._metric = metric
-        self._grits_function: Callable[[list, list], HungarianGritsResult] = self._METRIC_FUNCTIONS[
-            metric
-        ]
+        self._grits_function: Callable[[list, list], HungarianGritsMatchingResult] = (
+            self._METRIC_FUNCTIONS[metric]
+        )
         self.true_positive_scores: list[float] = []
         self.num_true_cells: list[int] = []
         self.num_pred_cells: list[int] = []
@@ -828,6 +892,21 @@ class _GritsMetricEvaluator:
         self.num_pred_grids.append(len(pred_grids))
         self.num_exact_grid_matches.append(num_exact_grid_matches)
         self.num_exact_cell_matches.append(num_exact_cell_matches)
+
+    def compute_counts(self) -> dict[str, int]:
+        """Compute the counts of samples, tables, and cells.
+
+        Returns:
+            Dict with keys num_samples, num_true_tables, num_pred_tables,
+            num_true_cells, and num_pred_cells.
+        """
+        return {
+            "num_samples": len(self.true_positive_scores),
+            "num_true_tables": sum(self.num_true_grids),
+            "num_pred_tables": sum(self.num_pred_grids),
+            "num_true_cells": sum(self.num_true_cells),
+            "num_pred_cells": sum(self.num_pred_cells),
+        }
 
     def compute_grits(self) -> dict[str, float]:
         """Compute the (micro) GriTS score, which is a pseudo F1 score over all instances.
@@ -1065,6 +1144,28 @@ class GritsEvaluator:
         }
         if len(set(counts.values())) > 1:
             raise ValueError(f"Mismatched sample counts across metrics: {counts}")
+
+    def compute_counts(self) -> dict[str, int]:
+        """Compute the counts of samples, tables, and cells.
+
+        Returns:
+            Dict with keys num_samples, num_true_tables, num_pred_tables,
+            num_true_cells, and num_pred_cells.
+
+        Raises:
+            ValueError: If evaluated metrics have different numbers of samples.
+        """
+        self._check_sample_counts()
+        for ev in self._evaluators.values():
+            if len(ev.true_positive_scores) > 0:
+                return ev.compute_counts()
+        return {
+            "num_samples": 0,
+            "num_true_tables": 0,
+            "num_pred_tables": 0,
+            "num_true_cells": 0,
+            "num_pred_cells": 0,
+        }
 
     def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.

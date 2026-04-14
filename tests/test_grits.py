@@ -16,8 +16,11 @@ from grits.grits import (
     grits_loc_matching,
     grits_top,
     grits_top_matching,
+    hungarian_grits_con,
     hungarian_grits_con_matching,
+    hungarian_grits_loc,
     hungarian_grits_loc_matching,
+    hungarian_grits_top,
     hungarian_grits_top_matching,
     iou,
     lcs_similarity,
@@ -371,11 +374,104 @@ class TestHungarianGritsCon:
         assert result.true_positive_score == 4.0
 
 
+class TestHungarianGritsLocFscore:
+    def test_perfect_single_grid(self):
+        grid = [[[0, 0, 10, 10], [10, 0, 20, 10]], [[0, 10, 10, 20], [10, 10, 20, 20]]]
+        f1, precision, recall = hungarian_grits_loc([grid], [grid])
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_perfect_multiple_grids(self):
+        grid_a = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
+        grid_b = [[[50, 50, 60, 60], [60, 50, 70, 60]]]
+        f1, precision, recall = hungarian_grits_loc([grid_a, grid_b], [grid_b, grid_a])
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_no_predictions(self):
+        grid = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
+        f1, precision, recall = hungarian_grits_loc([grid], [])
+        assert f1 == 0.0
+        assert precision == 1.0
+        assert recall == 0.0
+
+    def test_no_ground_truth(self):
+        grid = [[[0, 0, 10, 10], [10, 0, 20, 10]]]
+        f1, precision, recall = hungarian_grits_loc([], [grid])
+        assert f1 == 0.0
+        assert precision == 0.0
+        assert recall == 1.0
+
+
+class TestHungarianGritsConFscore:
+    def test_perfect_single_grid(self):
+        grid = [["A", "B"], ["C", "D"]]
+        f1, precision, recall = hungarian_grits_con([grid], [grid])
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_perfect_multiple_grids(self):
+        grid_a = [["A", "B"]]
+        grid_b = [["X", "Y"]]
+        f1, precision, recall = hungarian_grits_con([grid_a, grid_b], [grid_b, grid_a])
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_no_predictions(self):
+        grid = [["A", "B"]]
+        f1, precision, recall = hungarian_grits_con([grid], [])
+        assert f1 == 0.0
+        assert precision == 1.0
+        assert recall == 0.0
+
+    def test_no_ground_truth(self):
+        grid = [["A", "B"]]
+        f1, precision, recall = hungarian_grits_con([], [grid])
+        assert f1 == 0.0
+        assert precision == 0.0
+        assert recall == 1.0
+
+
 class TestHungarianGritsTop:
     def test_single_grid_pair(self):
         grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
         result = hungarian_grits_top_matching([grid], [grid])
         assert result.true_positive_score == 2.0
+
+
+class TestHungarianGritsTopFscore:
+    def test_perfect_single_grid(self):
+        grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
+        f1, precision, recall = hungarian_grits_top([grid], [grid])
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_perfect_multiple_grids(self):
+        grid1 = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
+        grid2 = [[[0, 0, 1, 1]]]
+        f1, precision, recall = hungarian_grits_top([grid1, grid2], [grid1, grid2])
+        assert f1 == 1.0
+        assert precision == 1.0
+        assert recall == 1.0
+
+    def test_no_predictions(self):
+        grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
+        f1, precision, recall = hungarian_grits_top([grid], [])
+        assert f1 == 0.0
+        assert precision == 1.0
+        assert recall == 0.0
+
+    def test_no_ground_truth(self):
+        grid = [[[0, 0, 1, 1], [0, 0, 1, 1]]]
+        f1, precision, recall = hungarian_grits_top([], [grid])
+        assert f1 == 0.0
+        assert precision == 0.0
+        assert recall == 1.0
 
 
 class TestGritsMetricEvaluator:
