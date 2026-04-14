@@ -493,25 +493,25 @@ class TestGritsMetricEvaluator:
         results = evaluator.compute_grits()
         assert results["grits_con"] == 1.0
 
-    def test_compute_avg_grits(self):
+    def test_compute_mean_grits_per_sample(self):
         evaluator = _GritsMetricEvaluator(metric="con")
         grid = [["A", "B"]]
         evaluator.eval_grids([grid], [grid])
-        results = evaluator.compute_avg_grits()
-        assert results["avg_grits_con"] == 1.0
-        assert results["avg_grits_con_precision"] == 1.0
-        assert results["avg_grits_con_recall"] == 1.0
+        results = evaluator.compute_mean_grits_per_sample()
+        assert results["mean_grits_con_per_sample"] == 1.0
+        assert results["mean_grits_con_precision_per_sample"] == 1.0
+        assert results["mean_grits_con_recall_per_sample"] == 1.0
 
-    def test_compute_avg_grits_precision_recall_order(self):
+    def test_compute_mean_grits_per_sample_precision_recall_order(self):
         evaluator = _GritsMetricEvaluator(metric="con")
         # true: 1x2, pred: 1x3 — recall should be 1.0, precision should be 2/3
         true_grid = [["A", "B"]]
         pred_grid = [["A", "B", "X"]]
         evaluator.eval_grids([true_grid], [pred_grid])
-        results = evaluator.compute_avg_grits()
-        assert results["avg_grits_con_precision"] == pytest.approx(2.0 / 3.0)
-        assert results["avg_grits_con_recall"] == 1.0
-        assert results["avg_grits_con"] == pytest.approx(0.8)
+        results = evaluator.compute_mean_grits_per_sample()
+        assert results["mean_grits_con_precision_per_sample"] == pytest.approx(2.0 / 3.0)
+        assert results["mean_grits_con_recall_per_sample"] == 1.0
+        assert results["mean_grits_con_per_sample"] == pytest.approx(0.8)
 
     def test_metric_top(self):
         evaluator = _GritsMetricEvaluator(metric="top")
@@ -561,14 +561,24 @@ class TestGritsMetricEvaluator:
         evaluator = _GritsMetricEvaluator(metric="con")
         grid = [["A", "B"]]
         evaluator.eval_grids([grid], [grid])
-        assert evaluator.compute_avg_grits()["avg_grits_con_grid_exact_match_accuracy"] == 1.0
+        assert (
+            evaluator.compute_mean_grits_per_sample()[
+                "mean_grits_con_grid_exact_match_accuracy_per_sample"
+            ]
+            == 1.0
+        )
 
     def test_avg_exact_match_accuracy_no_match(self):
         evaluator = _GritsMetricEvaluator(metric="con")
         true_grid = [["A", "B"]]
         pred_grid = [["X", "Y"]]
         evaluator.eval_grids([true_grid], [pred_grid])
-        assert evaluator.compute_avg_grits()["avg_grits_con_grid_exact_match_accuracy"] == 0.0
+        assert (
+            evaluator.compute_mean_grits_per_sample()[
+                "mean_grits_con_grid_exact_match_accuracy_per_sample"
+            ]
+            == 0.0
+        )
 
     def test_avg_exact_match_accuracy_mixed(self):
         evaluator = _GritsMetricEvaluator(metric="con")
@@ -576,7 +586,12 @@ class TestGritsMetricEvaluator:
         diff_grid = [["X", "Y"]]
         evaluator.eval_grids([grid], [grid])  # exact match
         evaluator.eval_grids([grid], [diff_grid])  # not exact
-        assert evaluator.compute_avg_grits()["avg_grits_con_grid_exact_match_accuracy"] == 0.5
+        assert (
+            evaluator.compute_mean_grits_per_sample()[
+                "mean_grits_con_grid_exact_match_accuracy_per_sample"
+            ]
+            == 0.5
+        )
 
     def test_cell_exact_match_accuracy_perfect(self):
         evaluator = _GritsMetricEvaluator(metric="con")
@@ -603,14 +618,24 @@ class TestGritsMetricEvaluator:
         evaluator = _GritsMetricEvaluator(metric="con")
         grid = [["A", "B"]]
         evaluator.eval_grids([grid], [grid])
-        assert evaluator.compute_avg_grits()["avg_grits_con_cell_exact_match_accuracy"] == 1.0
+        assert (
+            evaluator.compute_mean_grits_per_sample()[
+                "mean_grits_con_cell_exact_match_accuracy_per_sample"
+            ]
+            == 1.0
+        )
 
     def test_avg_cell_exact_match_accuracy_no_match(self):
         evaluator = _GritsMetricEvaluator(metric="con")
         true_grid = [["A", "B"]]
         pred_grid = [["X", "Y"]]
         evaluator.eval_grids([true_grid], [pred_grid])
-        assert evaluator.compute_avg_grits()["avg_grits_con_cell_exact_match_accuracy"] == 0.0
+        assert (
+            evaluator.compute_mean_grits_per_sample()[
+                "mean_grits_con_cell_exact_match_accuracy_per_sample"
+            ]
+            == 0.0
+        )
 
     def test_avg_cell_exact_match_accuracy_mixed(self):
         evaluator = _GritsMetricEvaluator(metric="con")
@@ -618,7 +643,12 @@ class TestGritsMetricEvaluator:
         grid_b = [["A", "X"]]
         evaluator.eval_grids([grid_a], [grid_a])  # 1.0 cell accuracy
         evaluator.eval_grids([grid_a], [grid_b])  # 0.5 cell accuracy
-        assert evaluator.compute_avg_grits()["avg_grits_con_cell_exact_match_accuracy"] == 0.75
+        assert (
+            evaluator.compute_mean_grits_per_sample()[
+                "mean_grits_con_cell_exact_match_accuracy_per_sample"
+            ]
+            == 0.75
+        )
 
     def test_exact_cell_matches_perfect(self):
         evaluator = _GritsMetricEvaluator(metric="con")
@@ -649,7 +679,7 @@ class TestGritsMetricEvaluator:
 class TestGritsEvaluator:
     def test_default_metrics(self):
         evaluator = GritsEvaluator()
-        assert evaluator.metrics == ["con", "loc", "top"]
+        assert evaluator.metrics == ["con", "top"]
 
     def test_custom_metrics(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
@@ -667,18 +697,18 @@ class TestGritsEvaluator:
             assert results[f"grits_{metric}_precision"] == 1.0
             assert results[f"grits_{metric}_recall"] == 1.0
 
-    def test_compute_avg_grits(self):
+    def test_compute_mean_grits_per_sample(self):
         evaluator = GritsEvaluator(metrics=["con"])
         grid = [["A", "B"]]
         evaluator.eval_grids_by_metric({"con": [grid]}, {"con": [grid]})
-        results = evaluator.compute_avg_grits()
-        assert results["avg_grits_con"] == 1.0
-        assert results["avg_grits_con_precision"] == 1.0
-        assert results["avg_grits_con_recall"] == 1.0
+        results = evaluator.compute_mean_grits_per_sample()
+        assert results["mean_grits_con_per_sample"] == 1.0
+        assert results["mean_grits_con_precision_per_sample"] == 1.0
+        assert results["mean_grits_con_recall_per_sample"] == 1.0
 
     def test_eval_htmls_perfect_score(self):
         html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         evaluator.eval_htmls([html], [html])
         results = evaluator.compute_grits()
         for metric in ("con", "top"):
@@ -689,15 +719,15 @@ class TestGritsEvaluator:
     def test_eval_htmls_different_tables(self):
         true_html = "<table><tr><td>A</td><td>B</td></tr></table>"
         pred_html = "<table><tr><td>A</td><td>X</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         evaluator.eval_htmls([true_html], [pred_html])
         results = evaluator.compute_grits()
         # "top" should be perfect (same structure), "con" should not (different text)
         assert results["grits_top"] == 1.0
-        assert results["grits_con"] < 1.0
+        assert results["grits_con"] == 0.5
 
     def test_eval_htmls_invalid_html_raises(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         with pytest.raises(ValueError, match="Failed to parse true_html"):
             evaluator.eval_htmls(["not valid html<><<"], ["<table><tr><td>A</td></tr></table>"])
         with pytest.raises(ValueError, match="Failed to parse pred_html"):
@@ -706,7 +736,7 @@ class TestGritsEvaluator:
     def test_eval_htmls_list_perfect_score(self):
         html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
         html_b = "<table><tr><td>X</td><td>Y</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         evaluator.eval_htmls([html_a, html_b], [html_a, html_b])
         results = evaluator.compute_grits()
         for metric in ("con", "top"):
@@ -715,7 +745,7 @@ class TestGritsEvaluator:
     def test_eval_htmls_list_hungarian_matching(self):
         html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
         html_b = "<table><tr><td>X</td><td>Y</td></tr></table>"
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         # Swapped order — Hungarian matching should pair them optimally
         evaluator.eval_htmls([html_a, html_b], [html_b, html_a])
         results = evaluator.compute_grits()
@@ -723,7 +753,7 @@ class TestGritsEvaluator:
             assert results[f"grits_{metric}"] == 1.0
 
     def test_eval_htmls_list_invalid_raises(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         with pytest.raises(ValueError, match="Failed to parse true_html"):
             evaluator.eval_htmls(
                 ["<table><tr><td>A</td></tr></table>", "not valid<<>"],
@@ -735,28 +765,36 @@ class TestGritsEvaluator:
                 ["not valid<<>"],
             )
 
-    def test_eval_htmls_missing_metric_raises(self):
-        evaluator = GritsEvaluator(metrics=["con"])
-        with pytest.raises(ValueError, match="eval_htmls requires both"):
+    def test_eval_htmls_loc_metric_raises(self):
+        evaluator = GritsEvaluator(metrics=["con", "loc"])
+        with pytest.raises(ValueError, match="eval_htmls cannot evaluate the 'loc' metric"):
             evaluator.eval_htmls(
                 ["<table><tr><td>A</td></tr></table>"], ["<table><tr><td>A</td></tr></table>"]
             )
 
+    def test_eval_htmls_single_metric(self):
+        html = "<table><tr><td>A</td><td>B</td></tr></table>"
+        evaluator = GritsEvaluator(metrics=["con"])
+        evaluator.eval_htmls([html], [html])
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 1.0
+        assert "grits_top" not in results
+
     def test_omits_metrics_without_samples(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "top"])
         html = "<table><tr><td>A</td></tr></table>"
         evaluator.eval_htmls([html], [html])
         results = evaluator.compute_grits()
         assert "grits_con" in results
         assert "grits_top" in results
         assert "grits_loc" not in results
-        avg_results = evaluator.compute_avg_grits()
-        assert "avg_grits_con" in avg_results
-        assert "avg_grits_top" in avg_results
-        assert "avg_grits_loc" not in avg_results
+        avg_results = evaluator.compute_mean_grits_per_sample()
+        assert "mean_grits_con_per_sample" in avg_results
+        assert "mean_grits_top_per_sample" in avg_results
+        assert "mean_grits_loc_per_sample" not in avg_results
 
     def test_eval_table_cell_dicts_perfect(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         cell_dicts = _make_simple_cell_dicts()
         evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
         results = evaluator.compute_grits()
@@ -764,7 +802,7 @@ class TestGritsEvaluator:
             assert results[f"grits_{metric}"] == 1.0
 
     def test_eval_table_cell_dicts_different_text(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         true_cell_dicts = _make_simple_cell_dicts()
         pred_cell_dicts = [
             {"row_nums": [0], "column_nums": [0], "cell_text": "X", "bbox": [0, 0, 10, 10]},
@@ -774,12 +812,12 @@ class TestGritsEvaluator:
         ]
         evaluator.eval_table_cell_dicts([true_cell_dicts], [pred_cell_dicts])
         results = evaluator.compute_grits()
-        assert results["grits_con"] < 1.0
+        assert results["grits_con"] == 0.0
         assert results["grits_loc"] == 1.0
         assert results["grits_top"] == 1.0
 
     def test_eval_table_cell_dicts_list(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         cell_dicts_a = _make_simple_cell_dicts()
         cell_dicts_b = [
             {"row_nums": [0], "column_nums": [0], "cell_text": "X", "bbox": [0, 0, 5, 5]},
@@ -790,7 +828,7 @@ class TestGritsEvaluator:
             assert results[f"grits_{metric}"] == 1.0
 
     def test_eval_table_cell_dicts_different_bbox(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         true_cell_dicts = _make_simple_cell_dicts()
         # Same text and structure, but shifted bboxes
         pred_cell_dicts = [
@@ -806,7 +844,7 @@ class TestGritsEvaluator:
         assert results["grits_top"] == 1.0
 
     def test_eval_table_cell_dicts_different_structure(self):
-        evaluator = GritsEvaluator()
+        evaluator = GritsEvaluator(metrics=["con", "loc", "top"])
         true_cell_dicts = _make_simple_cell_dicts()
         # Same text and bboxes, but one cell spans two columns
         pred_cell_dicts = [
@@ -818,11 +856,14 @@ class TestGritsEvaluator:
         results = evaluator.compute_grits()
         assert results["grits_top"] == 0.75
 
-    def test_eval_table_cell_dicts_missing_metric_raises(self):
+    def test_eval_table_cell_dicts_subset_of_metrics(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
         cell_dicts = _make_simple_cell_dicts()
-        with pytest.raises(ValueError, match="eval_table_cell_dicts requires"):
-            evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
+        evaluator.eval_table_cell_dicts([cell_dicts], [cell_dicts])
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 1.0
+        assert results["grits_top"] == 1.0
+        assert "grits_loc" not in results
 
     def test_eval_grids_perfect_score(self):
         evaluator = GritsEvaluator(metrics=["con"])
@@ -869,3 +910,84 @@ class TestGritsEvaluator:
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="metric must be one of"):
             GritsEvaluator(metrics=["invalid"])
+
+
+# HTML fixtures for integration tests
+_TRUE_HTML_1 = (
+    "<table><thead><tr><th>Shape</th><th>Color</th></tr></thead>"
+    "<tbody><tr><td>Circle</td><td>Red</td></tr>"
+    "<tr><td>Triangle</td><td>Blue</td></tr></tbody></table>"
+)
+_TRUE_HTML_2 = (
+    "<table><tr><td>Week 1</td><td>1 km</td><td>6:02</td></tr>"
+    "<tr><td>Week 2</td><td>1 km</td><td>5:25</td></tr>"
+    "<tr><td>Week 3</td><td>2 km</td><td>10:19</td></tr></table>"
+)
+_PRED_HTML_1 = (
+    "<table><thead><tr><th>Shape</th><th>Color</th></tr></thead>"
+    "<tbody><tr><td>Cirle</td><td>Orange</td></tr>"
+    "<tr><td>Triangle</td><td>Bleu</td></tr></tbody></table>"
+)
+_PRED_HTML_2 = (
+    "<table><tr><td>Week I</td><td>1 m</td><td>6:02</td></tr>"
+    "<tr><td>Week 2</td><td>1 kn</td><td>5:25</td></tr></table>"
+)
+_PRED_HTML_3 = "<table><tr><td>Week 3</td><td>2 km</td><td>10:19</td></tr></table>"
+
+
+class TestHtmlIntegration:
+    def test_single_table_imperfect_text(self):
+        """Same structure, some text differences."""
+        evaluator = GritsEvaluator(metrics=["con", "top"])
+        evaluator.eval_htmls([_TRUE_HTML_1], [_PRED_HTML_1])
+        results = evaluator.compute_grits()
+        # Structure is identical
+        assert results["grits_top"] == 1.0
+        # Text has differences (Cirle, Orange, Bleu)
+        assert results["grits_con"] == pytest.approx(0.8136, abs=1e-4)
+        counts = evaluator.compute_counts()
+        assert counts["num_true_cells"] == 6
+        assert counts["num_pred_cells"] == 6
+
+    def test_single_table_missing_row(self):
+        """Prediction has 2 of 3 rows."""
+        evaluator = GritsEvaluator(metrics=["con", "top"])
+        evaluator.eval_htmls([_TRUE_HTML_2], [_PRED_HTML_2])
+        results = evaluator.compute_grits()
+        # Missing row lowers recall
+        assert results["grits_top_recall"] == pytest.approx(2.0 / 3.0, abs=1e-4)
+        assert results["grits_top_precision"] == 1.0
+        assert results["grits_con"] == pytest.approx(0.7254, abs=1e-4)
+        counts = evaluator.compute_counts()
+        assert counts["num_true_cells"] == 9
+        assert counts["num_pred_cells"] == 6
+
+    def test_multi_table_hungarian_matching(self):
+        """Two true tables matched against three predicted tables."""
+        evaluator = GritsEvaluator(metrics=["con", "top"])
+        evaluator.eval_htmls(
+            [_TRUE_HTML_1, _TRUE_HTML_2], [_PRED_HTML_1, _PRED_HTML_2, _PRED_HTML_3]
+        )
+        results = evaluator.compute_grits()
+        # Top metric: pred tables split true_html_2, so not perfect
+        assert results["grits_top"] == pytest.approx(0.8, abs=1e-4)
+        assert results["grits_con"] == pytest.approx(0.6881, abs=1e-4)
+        counts = evaluator.compute_counts()
+        assert counts["num_true_tables"] == 2
+        assert counts["num_pred_tables"] == 3
+
+    def test_two_samples_micro_vs_macro(self):
+        """Two separate samples, compare micro and macro averaging."""
+        evaluator = GritsEvaluator(metrics=["con", "top"])
+        evaluator.eval_htmls([_TRUE_HTML_1], [_PRED_HTML_1])
+        evaluator.eval_htmls([_TRUE_HTML_2], [_PRED_HTML_2])
+        micro = evaluator.compute_grits()
+        macro = evaluator.compute_mean_grits_per_sample()
+        counts = evaluator.compute_counts()
+        # Micro and macro should differ because sample sizes differ (6 vs 9 cells)
+        assert micro["grits_con"] != macro["mean_grits_con_per_sample"]
+        assert micro["grits_con"] == pytest.approx(0.7646, abs=1e-4)
+        assert macro["mean_grits_con_per_sample"] == pytest.approx(0.7695, abs=1e-4)
+        assert counts["num_samples"] == 2
+        assert counts["num_true_tables"] == 2
+        assert counts["num_pred_tables"] == 2

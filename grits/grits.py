@@ -1,10 +1,10 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 import dataclasses
-from difflib import SequenceMatcher
 import itertools
 from typing import Any, Callable
 
 import numpy as np
+import pylcs
 from scipy.optimize import linear_sum_assignment
 
 from .bbox import BBox, get_overlap_area
@@ -503,13 +503,9 @@ def lcs_similarity(string1: str, string2: str) -> float:
     if string1 == string2:
         return 1.0
 
-    sequence_matcher = SequenceMatcher(None, string1, string2)
+    lcs_length = pylcs.lcs_sequence_length(string1, string2)
 
-    lcs_length = sum(block.size for block in sequence_matcher.get_matching_blocks())
-
-    lcs_similarity_score = 2 * lcs_length / (len(string1) + len(string2))
-
-    return lcs_similarity_score
+    return 2 * lcs_length / (len(string1) + len(string2))
 
 
 def iou(bbox_1_and_area_1: tuple[BBox, float], bbox_2_and_area_2: tuple[BBox, float]) -> float:
@@ -940,13 +936,13 @@ class _GritsMetricEvaluator:
             f"grits_{m}_grid_exact_match_accuracy": grid_exact_match_accuracy,
         }
 
-    def compute_avg_grits(self) -> dict[str, float]:
+    def compute_mean_grits_per_sample(self) -> dict[str, float]:
         """Compute the (macro) average GriTS score. Compute the GriTS score for each instance, then average the GriTS score over all instances.
 
         Returns:
-            Dict with keys avg_grits_METRIC, avg_grits_METRIC_precision,
-            avg_grits_METRIC_recall, avg_grits_METRIC_cell_exact_match_accuracy,
-            and avg_grits_METRIC_grid_exact_match_accuracy.
+            Dict with keys mean_grits_METRIC_per_sample, mean_grits_METRIC_precision_per_sample,
+            mean_grits_METRIC_recall_per_sample, mean_grits_METRIC_cell_exact_match_accuracy_per_sample,
+            and mean_grits_METRIC_grid_exact_match_accuracy_per_sample.
         """
         f1s = []
         precisions = []
@@ -978,12 +974,12 @@ class _GritsMetricEvaluator:
             grid_exact_match_accuracies.append(exact_grid_matches / num_true_grids)
         m = self._metric
         return {
-            f"avg_grits_{m}": sum(f1s) / len(f1s),
-            f"avg_grits_{m}_precision": sum(precisions) / len(precisions),
-            f"avg_grits_{m}_recall": sum(recalls) / len(recalls),
-            f"avg_grits_{m}_cell_exact_match_accuracy": sum(cell_exact_match_accuracies)
+            f"mean_grits_{m}_per_sample": sum(f1s) / len(f1s),
+            f"mean_grits_{m}_precision_per_sample": sum(precisions) / len(precisions),
+            f"mean_grits_{m}_recall_per_sample": sum(recalls) / len(recalls),
+            f"mean_grits_{m}_cell_exact_match_accuracy_per_sample": sum(cell_exact_match_accuracies)
             / len(cell_exact_match_accuracies),
-            f"avg_grits_{m}_grid_exact_match_accuracy": sum(grid_exact_match_accuracies)
+            f"mean_grits_{m}_grid_exact_match_accuracy_per_sample": sum(grid_exact_match_accuracies)
             / len(grid_exact_match_accuracies),
         }
 
@@ -995,10 +991,10 @@ class GritsEvaluator:
         """Initialize the evaluator with the specified metrics.
 
         Args:
-            metrics: List of metric names to track. Defaults to ["con", "loc", "top"].
+            metrics: List of metric names to track from among ["con", "top", "loc"]. Defaults to ["con", "top"].
         """
         if metrics is None:
-            metrics = ["con", "loc", "top"]
+            metrics = ["con", "top"]
         self._evaluators = {metric: _GritsMetricEvaluator(metric=metric) for metric in metrics}
 
     @property
@@ -1044,7 +1040,10 @@ class GritsEvaluator:
         self._evaluators[metric].eval_grids(true_grids, pred_grids)
 
     def eval_htmls(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
-        """Parse HTML tables and evaluate the con and top metrics.
+        """Parse HTML tables and evaluate the configured metrics.
+
+        HTML tables do not contain bounding box information, so the 'loc' metric
+        cannot be evaluated with this method.
 
         Args:
             true_htmls: List of HTML strings of ground truth tables.
@@ -1053,43 +1052,45 @@ class GritsEvaluator:
         Raises:
             TypeError: If a bare string is passed instead of a list of strings.
             ValueError: If any HTML string cannot be parsed, or if the evaluator
-                is not tracking both "con" and "top" metrics.
+                is tracking the 'loc' metric.
         """
         if isinstance(true_htmls, str) or isinstance(pred_htmls, str):  # type: ignore[unreachable]
             raise TypeError("eval_htmls expects lists of HTML strings, not a single string.")
-        missing = {"con", "top"} - set(self._evaluators)
-        if missing:
+        if "loc" in self._evaluators:
             raise ValueError(
-                f"eval_htmls requires both 'con' and 'top' metrics, but missing: {missing}"
+                "eval_htmls cannot evaluate the 'loc' metric because HTML tables "
+                "do not contain bounding box information. "
+                "Initialize GritsEvaluator() without 'loc' to proceed with evaluation."
             )
 
-        true_grids_con = []
-        true_grids_top = []
+        true_cell_dicts = []
         for true_html in true_htmls:
-            true_cell_dicts = html_to_cell_dicts(true_html)
-            if true_cell_dicts is None:
+            cell_dicts = html_to_cell_dicts(true_html)
+            if cell_dicts is None:
                 raise ValueError(f"Failed to parse true_html: {true_html!r}")
-            true_grids_con.append(cell_dicts_to_grid_con(true_cell_dicts))
-            true_grids_top.append(cell_dicts_to_grid_top(true_cell_dicts))
+            true_cell_dicts.append(cell_dicts)
 
-        pred_grids_con = []
-        pred_grids_top = []
+        pred_cell_dicts = []
         for pred_html in pred_htmls:
-            pred_cell_dicts = html_to_cell_dicts(pred_html)
-            if pred_cell_dicts is None:
+            cell_dicts = html_to_cell_dicts(pred_html)
+            if cell_dicts is None:
                 raise ValueError(f"Failed to parse pred_html: {pred_html!r}")
-            pred_grids_con.append(cell_dicts_to_grid_con(pred_cell_dicts))
-            pred_grids_top.append(cell_dicts_to_grid_top(pred_cell_dicts))
+            pred_cell_dicts.append(cell_dicts)
 
-        self._evaluators["con"].eval_grids(true_grids_con, pred_grids_con)
-        self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
+        self.eval_table_cell_dicts(true_cell_dicts, pred_cell_dicts)
+
+    _GRID_CONVERSION_FUNCTIONS: dict[str, Callable[[list[dict[str, Any]]], list[list[Any]]]] = {
+        "con": cell_dicts_to_grid_con,
+        "loc": cell_dicts_to_grid_loc,
+        "top": cell_dicts_to_grid_top,
+    }
 
     def eval_table_cell_dicts(
         self,
         true_cell_dicts: list[list[dict[str, Any]]],
         pred_cell_dicts: list[list[dict[str, Any]]],
     ) -> None:
-        """Convert table cell dicts to grids and evaluate all three metrics (con, loc, top).
+        """Convert table cell dicts to grids and evaluate whichever metrics the evaluator tracks.
 
         Args:
             true_cell_dicts: A list of lists of cell dicts, one list per ground truth table.
@@ -1097,7 +1098,6 @@ class GritsEvaluator:
 
         Raises:
             TypeError: If a flat list of cell dicts is passed instead of a list of lists.
-            ValueError: If the evaluator is not tracking all three metrics.
         """
         if true_cell_dicts and isinstance(true_cell_dicts[0], dict):  # type: ignore[unreachable]
             raise TypeError(
@@ -1109,31 +1109,12 @@ class GritsEvaluator:
                 "eval_table_cell_dicts expects a list of lists of cell dicts, "
                 "not a single list of cell dicts."
             )
-        missing = {"con", "loc", "top"} - set(self._evaluators)
-        if missing:
-            raise ValueError(
-                f"eval_table_cell_dicts requires 'con', 'loc', and 'top' metrics, but missing: {missing}"
-            )
 
-        true_grids_con = []
-        true_grids_loc = []
-        true_grids_top = []
-        for cell_dicts in true_cell_dicts:
-            true_grids_con.append(cell_dicts_to_grid_con(cell_dicts))
-            true_grids_loc.append(cell_dicts_to_grid_loc(cell_dicts))
-            true_grids_top.append(cell_dicts_to_grid_top(cell_dicts))
-
-        pred_grids_con = []
-        pred_grids_loc = []
-        pred_grids_top = []
-        for cell_dicts in pred_cell_dicts:
-            pred_grids_con.append(cell_dicts_to_grid_con(cell_dicts))
-            pred_grids_loc.append(cell_dicts_to_grid_loc(cell_dicts))
-            pred_grids_top.append(cell_dicts_to_grid_top(cell_dicts))
-
-        self._evaluators["con"].eval_grids(true_grids_con, pred_grids_con)
-        self._evaluators["loc"].eval_grids(true_grids_loc, pred_grids_loc)
-        self._evaluators["top"].eval_grids(true_grids_top, pred_grids_top)
+        for metric, evaluator in self._evaluators.items():
+            to_grid = self._GRID_CONVERSION_FUNCTIONS[metric]
+            true_grids = [to_grid(cd) for cd in true_cell_dicts]
+            pred_grids = [to_grid(cd) for cd in pred_cell_dicts]
+            evaluator.eval_grids(true_grids, pred_grids)
 
     def _check_sample_counts(self) -> None:
         """Raise ValueError if evaluated metrics have different numbers of samples."""
@@ -1184,12 +1165,12 @@ class GritsEvaluator:
                 results.update(ev.compute_grits())
         return results
 
-    def compute_avg_grits(self) -> dict[str, float]:
+    def compute_mean_grits_per_sample(self) -> dict[str, float]:
         """Compute macro-averaged GriTS scores for each metric.
 
         Returns:
-            Dict with keys like avg_grits_con, avg_grits_con_precision, avg_grits_con_recall
-            for each metric with at least one evaluated sample.
+            Dict with keys like mean_grits_con_per_sample, mean_grits_con_precision_per_sample,
+            mean_grits_con_recall_per_sample for each metric with at least one evaluated sample.
 
         Raises:
             ValueError: If evaluated metrics have different numbers of samples.
@@ -1198,5 +1179,5 @@ class GritsEvaluator:
         results: dict[str, float] = {}
         for ev in self._evaluators.values():
             if len(ev.true_positive_scores) > 0:
-                results.update(ev.compute_avg_grits())
+                results.update(ev.compute_mean_grits_per_sample())
         return results
