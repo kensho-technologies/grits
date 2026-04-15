@@ -15,6 +15,7 @@ class TableCell:
         cell_text: Text content of the cell.
         bbox: Bounding box [x_min, y_min, x_max, y_max] of the cell.
         is_column_header: Whether this cell is a column header.
+        is_row_header: Whether this cell is a row header.
     """
 
     row_nums: list[int]
@@ -22,6 +23,7 @@ class TableCell:
     cell_text: str = ""
     bbox: list[float] | None = None
     is_column_header: bool = False
+    is_row_header: bool = False
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "TableCell":
@@ -32,6 +34,7 @@ class TableCell:
             cell_text=d.get("cell_text", ""),
             bbox=d.get("bbox"),
             is_column_header=d.get("is_column_header", False),
+            is_row_header=d.get("is_row_header", False),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -41,6 +44,7 @@ class TableCell:
             "column_nums": self.column_nums,
             "cell_text": self.cell_text,
             "is_column_header": self.is_column_header,
+            "is_row_header": self.is_row_header,
         }
         if self.bbox is not None:
             d["bbox"] = self.bbox

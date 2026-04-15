@@ -1001,18 +1001,21 @@ class TestTableCell:
             cell_text="hello",
             bbox=[0.0, 0.0, 10.0, 20.0],
             is_column_header=True,
+            is_row_header=True,
         )
         assert cell.row_nums == [0, 1]
         assert cell.column_nums == [0]
         assert cell.cell_text == "hello"
         assert cell.bbox == [0.0, 0.0, 10.0, 20.0]
         assert cell.is_column_header is True
+        assert cell.is_row_header is True
 
     def test_construction_defaults(self):
         cell = TableCell(row_nums=[0], column_nums=[1])
         assert cell.cell_text == ""
         assert cell.bbox is None
         assert cell.is_column_header is False
+        assert cell.is_row_header is False
 
     def test_from_dict_all_keys(self):
         d = {
@@ -1021,6 +1024,7 @@ class TestTableCell:
             "cell_text": "A",
             "bbox": [0, 0, 10, 10],
             "is_column_header": True,
+            "is_row_header": True,
         }
         cell = TableCell.from_dict(d)
         assert cell.row_nums == [0]
@@ -1028,6 +1032,7 @@ class TestTableCell:
         assert cell.cell_text == "A"
         assert cell.bbox == [0, 0, 10, 10]
         assert cell.is_column_header is True
+        assert cell.is_row_header is True
 
     def test_from_dict_minimal_keys(self):
         d = {"row_nums": [0], "column_nums": [1]}
@@ -1035,6 +1040,7 @@ class TestTableCell:
         assert cell.cell_text == ""
         assert cell.bbox is None
         assert cell.is_column_header is False
+        assert cell.is_row_header is False
 
     def test_from_dict_ignores_extra_keys(self):
         d = {"row_nums": [0], "column_nums": [1], "extra_field": 42, "another": "value"}
@@ -1054,6 +1060,7 @@ class TestTableCell:
             "cell_text": "A",
             "bbox": [0, 0, 10, 10],
             "is_column_header": True,
+            "is_row_header": False,
         }
 
     def test_to_dict_without_bbox(self):
@@ -1064,6 +1071,7 @@ class TestTableCell:
             "column_nums": [1],
             "cell_text": "A",
             "is_column_header": False,
+            "is_row_header": False,
         }
         assert "bbox" not in d
 
