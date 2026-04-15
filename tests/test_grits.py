@@ -9,6 +9,7 @@ from grits.conversion import (
     cell_list_to_grid_loc,
     cell_list_to_grid_top,
     html_to_cell_list,
+    html_to_grids,
 )
 from grits.grits import (
     GritsEvaluator,
@@ -309,6 +310,27 @@ class TestHtmlToCellList:
 
     def test_invalid_html_returns_none(self):
         assert html_to_cell_list("not valid xml at all <<<") is None
+
+
+class TestHtmlToGrids:
+    def test_simple_table(self):
+        html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>"
+        result = html_to_grids(html)
+        assert result is not None
+        assert set(result.keys()) == {"con", "top"}
+        assert result["con"] == [["A", "B"], ["C", "D"]]
+        assert result["top"] == [[[0, 0, 1, 1], [0, 0, 1, 1]], [[0, 0, 1, 1], [0, 0, 1, 1]]]
+
+    def test_matches_individual_conversions(self):
+        html = '<table><tr><td colspan="2">AB</td></tr><tr><td>C</td><td>D</td></tr></table>'
+        cell_list = html_to_cell_list(html)
+        result = html_to_grids(html)
+        assert result is not None
+        assert result["con"] == cell_list_to_grid_con(cell_list)
+        assert result["top"] == cell_list_to_grid_top(cell_list)
+
+    def test_invalid_html_returns_none(self):
+        assert html_to_grids("not valid xml at all <<<") is None
 
 
 class TestIou:

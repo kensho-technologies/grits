@@ -215,3 +215,25 @@ def cell_list_to_grid_top(cell_list: list[TableCell]) -> list[list[Any]]:
                 ]
 
     return cell_grid
+
+
+def html_to_grids(table_html: str) -> dict[str, list[list[Any]]] | None:
+    """Convert an HTML table to con and top grids.
+
+    This is a convenience function that chains html_to_cell_list with
+    cell_list_to_grid_con and cell_list_to_grid_top.
+
+    Args:
+        table_html: HTML string of the table to convert.
+
+    Returns:
+        A dict with keys "con" and "top" mapping to their respective grids,
+        or None if the HTML cannot be parsed.
+    """
+    cell_list = html_to_cell_list(table_html)
+    if cell_list is None:
+        return None
+    return {
+        "con": cell_list_to_grid_con(cell_list),
+        "top": cell_list_to_grid_top(cell_list),
+    }

@@ -14,6 +14,7 @@ from .conversion import (
     cell_list_to_grid_loc,
     cell_list_to_grid_top,
     html_to_cell_list,
+    html_to_grids,
 )
 from .grits import (
     GritsEvaluator,
@@ -53,6 +54,7 @@ __all__ = [
     "cell_list_to_grid_loc",
     "cell_list_to_grid_top",
     "html_to_cell_list",
+    "html_to_grids",
     # GriTS metrics
     "GritsMatchingResult",
     "HungarianGritsMatchingResult",
