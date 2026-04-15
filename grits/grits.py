@@ -8,106 +8,13 @@ import pylcs
 from scipy.optimize import linear_sum_assignment
 
 from .bbox import BBox, get_overlap_area
-from .utils import TableCell, html_to_cell_list
-
-
-def _cell_list_to_grid(
-    cell_list: list[TableCell], key: str, default_value: Any
-) -> list[list[Any]]:
-    """Convert from a list of TableCells to a matrix of grid cell features.
-
-    This matrix representation is the input to GriTS.
-
-    Args:
-        cell_list: List of TableCell objects.
-        key: The cell attribute to extract ('bbox' for GriTS_Loc, 'cell_text' for GriTS_Con).
-        default_value: Value used to initialize grid cells that are not covered by any cell.
-
-    Returns:
-        A 2D list (grid) of cell features indexed by [row][column].
-    """
-    if len(cell_list) == 0:
-        return [[]]
-    num_rows = max([max(cell.row_nums) for cell in cell_list]) + 1
-    num_columns = max([max(cell.column_nums) for cell in cell_list]) + 1
-    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
-    for cell in cell_list:
-        for row_num in cell.row_nums:
-            for column_num in cell.column_nums:
-                cell_grid[row_num][column_num] = getattr(cell, key)
-
-    return cell_grid
-
-
-def cell_list_to_grid_con(cell_list: list[TableCell]) -> list[list[Any]]:
-    """Convert from a list of TableCells to a matrix of cell text, used for computing GriTS_Con.
-
-    Args:
-        cell_list: List of TableCell objects with row_nums, column_nums, and cell_text.
-
-    Returns:
-        A 2D list (grid) of cell text strings indexed by [row][column].
-    """
-    default_value = ""
-    return _cell_list_to_grid(cell_list, key="cell_text", default_value=default_value)
-
-
-def cell_list_to_grid_loc(cell_list: list[TableCell]) -> list[list[Any]]:
-    """Convert from a list of TableCells to a matrix of cell bounding boxes, used for computing GriTS_Loc.
-
-    Args:
-        cell_list: List of TableCell objects with row_nums, column_nums, and bbox.
-
-    Returns:
-        A 2D list (grid) of bounding boxes indexed by [row][column].
-    """
-    default_value = [0.0, 0.0, 0.0, 0.0]
-    return _cell_list_to_grid(cell_list, key="bbox", default_value=default_value)
-
-
-def cell_list_to_grid_top(cell_list: list[TableCell]) -> list[list[Any]]:
-    """Convert from a list of TableCells to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
-
-    For the cell at grid location (i,j), let a(i,j) be its rowspan,
-    let β(i,j) be its colspan, let p(i,j) be the minimum row it occupies,
-    and let θ(i,j) be the minimum column it occupies. Its relative span is
-    bounding box [θ(i,j)-j, p(i,j)-i, θ(i,j)-j+β(i,j), p(i,j)-i+a(i,j)].
-
-    It gives the size and location of the cell each grid cell belongs to
-    relative to the current grid cell location, in grid coordinate units.
-    Note that for a non-spanning cell this will always be [0, 0, 1, 1].
-
-    Args:
-        cell_list: List of TableCell objects with row_nums and column_nums.
-
-    Returns:
-        A 2D list (grid) of relative span values indexed by [row][column].
-    """
-    if len(cell_list) == 0:
-        return [[]]
-    num_rows = max([max(cell.row_nums) for cell in cell_list]) + 1
-    num_columns = max([max(cell.column_nums) for cell in cell_list]) + 1
-
-    # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
-    # This handles cases where HTML tables have missing cells
-    default_value = [0, 0, 1, 1]
-    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
-
-    for cell in cell_list:
-        min_row_num = min(cell.row_nums)
-        min_column_num = min(cell.column_nums)
-        max_row_num = max(cell.row_nums) + 1
-        max_column_num = max(cell.column_nums) + 1
-        for row_num in cell.row_nums:
-            for column_num in cell.column_nums:
-                cell_grid[row_num][column_num] = [
-                    min_column_num - column_num,
-                    min_row_num - row_num,
-                    max_column_num - column_num,
-                    max_row_num - row_num,
-                ]
-
-    return cell_grid
+from .conversion import (
+    TableCell,
+    cell_list_to_grid_con,
+    cell_list_to_grid_loc,
+    cell_list_to_grid_top,
+    html_to_cell_list,
+)
 
 
 def compute_fscore(

@@ -3,12 +3,16 @@ import numpy as np
 import pytest
 
 from grits.bbox import BBox
-from grits.grits import (
-    GritsEvaluator,
-    _GritsMetricEvaluator,
+from grits.conversion import (
+    TableCell,
     cell_list_to_grid_con,
     cell_list_to_grid_loc,
     cell_list_to_grid_top,
+    html_to_cell_list,
+)
+from grits.grits import (
+    GritsEvaluator,
+    _GritsMetricEvaluator,
     compute_fscore,
     grits_con,
     grits_con_matching,
@@ -25,7 +29,6 @@ from grits.grits import (
     iou,
     lcs_similarity,
 )
-from grits.utils import TableCell, html_to_cell_list
 
 
 def _make_simple_cell_list():

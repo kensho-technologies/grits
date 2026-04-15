@@ -8,13 +8,17 @@ from .bbox import (
     is_horizontal_overlap,
     is_vertical_overlap,
 )
+from .conversion import (
+    TableCell,
+    cell_list_to_grid_con,
+    cell_list_to_grid_loc,
+    cell_list_to_grid_top,
+    html_to_cell_list,
+)
 from .grits import (
     GritsEvaluator,
     GritsMatchingResult,
     HungarianGritsMatchingResult,
-    cell_list_to_grid_con,
-    cell_list_to_grid_loc,
-    cell_list_to_grid_top,
     compute_fscore,
     grits_con,
     grits_con_matching,
@@ -31,7 +35,6 @@ from .grits import (
     iou,
     lcs_similarity,
 )
-from .utils import TableCell, html_to_cell_list
 
 
 __all__ = [
