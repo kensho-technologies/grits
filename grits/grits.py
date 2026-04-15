@@ -8,106 +8,13 @@ import pylcs
 from scipy.optimize import linear_sum_assignment
 
 from .bbox import BBox, get_overlap_area
-from .utils import html_to_cell_dicts
-
-
-def _cell_dicts_to_grid(
-    cell_dicts: list[dict[str, Any]], key: str, default_value: Any
-) -> list[list[Any]]:
-    """Convert from a list of cell dicts to a matrix of grid cell features.
-
-    This matrix representation is the input to GriTS.
-
-    Args:
-        cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and feature keys.
-        key: The cell feature key to extract ('bbox' for GriTS_Loc, 'cell_text' for GriTS_Con).
-        default_value: Value used to initialize grid cells that are not covered by any cell dict.
-
-    Returns:
-        A 2D list (grid) of cell features indexed by [row][column].
-    """
-    if len(cell_dicts) == 0:
-        return [[]]
-    num_rows = max([max(cell_dict["row_nums"]) for cell_dict in cell_dicts]) + 1
-    num_columns = max([max(cell_dict["column_nums"]) for cell_dict in cell_dicts]) + 1
-    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
-    for cell_dict in cell_dicts:
-        for row_num in cell_dict["row_nums"]:
-            for column_num in cell_dict["column_nums"]:
-                cell_grid[row_num][column_num] = cell_dict[key]
-
-    return cell_grid
-
-
-def cell_dicts_to_grid_con(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
-    """Convert from a list of cell dicts to a matrix of cell text, used for computing GriTS_Con.
-
-    Args:
-        cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and 'cell_text'.
-
-    Returns:
-        A 2D list (grid) of cell text strings indexed by [row][column].
-    """
-    default_value = ""
-    return _cell_dicts_to_grid(cell_dicts, key="cell_text", default_value=default_value)
-
-
-def cell_dicts_to_grid_loc(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
-    """Convert from a list of cell dicts to a matrix of cell bounding boxes, used for computing GriTS_Loc.
-
-    Args:
-        cell_dicts: List of cell dicts with 'row_nums', 'column_nums', and 'bbox'.
-
-    Returns:
-        A 2D list (grid) of bounding boxes indexed by [row][column].
-    """
-    default_value = [0.0, 0.0, 0.0, 0.0]
-    return _cell_dicts_to_grid(cell_dicts, key="bbox", default_value=default_value)
-
-
-def cell_dicts_to_grid_top(cell_dicts: list[dict[str, Any]]) -> list[list[Any]]:
-    """Convert from a list of cell dicts to the matrix/grid of relative spans (boxes), used for computing GriTS_Top.
-
-    For the cell at grid location (i,j), let a(i,j) be its rowspan,
-    let β(i,j) be its colspan, let p(i,j) be the minimum row it occupies,
-    and let θ(i,j) be the minimum column it occupies. Its relative span is
-    bounding box [θ(i,j)-j, p(i,j)-i, θ(i,j)-j+β(i,j), p(i,j)-i+a(i,j)].
-
-    It gives the size and location of the cell each grid cell belongs to
-    relative to the current grid cell location, in grid coordinate units.
-    Note that for a non-spanning cell this will always be [0, 0, 1, 1].
-
-    Args:
-        cell_dicts: List of cell dicts with 'row_nums' and 'column_nums'.
-
-    Returns:
-        A 2D list (grid) of relative span values indexed by [row][column].
-    """
-    if len(cell_dicts) == 0:
-        return [[]]
-    num_rows = max([max(cell_dict["row_nums"]) for cell_dict in cell_dicts]) + 1
-    num_columns = max([max(cell_dict["column_nums"]) for cell_dict in cell_dicts]) + 1
-
-    # Initialize grid with [0, 0, 1, 1] (non-spanning cells) instead of 0.0
-    # This handles cases where HTML tables have missing cells
-    default_value = [0, 0, 1, 1]
-    cell_grid = [[default_value for _ in range(num_columns)] for _ in range(num_rows)]
-
-    for cell_dict in cell_dicts:
-        min_row_num = min(cell_dict["row_nums"])
-        min_column_num = min(cell_dict["column_nums"])
-        max_row_num = max(cell_dict["row_nums"]) + 1
-        max_column_num = max(cell_dict["column_nums"]) + 1
-        for row_num in cell_dict["row_nums"]:
-            for column_num in cell_dict["column_nums"]:
-                cell_grid[row_num][column_num] = [
-                    min_column_num - column_num,
-                    min_row_num - row_num,
-                    max_column_num - column_num,
-                    max_row_num - row_num,
-                ]
-
-    return cell_grid
+from .conversion import (
+    TableCell,
+    cell_list_to_grid_con,
+    cell_list_to_grid_loc,
+    cell_list_to_grid_top,
+    html_to_cell_list,
+)
 
 
 def compute_fscore(
@@ -985,7 +892,7 @@ class _GritsMetricEvaluator:
 
 
 class GritsEvaluator:
-    """Tracks multiple GriTS metrics simultaneously by composing single-metric evaluators."""
+    """Evaluates a set of GriTS metrics one-sample-at-a-time and computes aggregate metrics over all samples."""
 
     def __init__(self, metrics: list[str] | None = None) -> None:
         """Initialize the evaluator with the specified metrics.
@@ -1007,7 +914,9 @@ class GritsEvaluator:
         true_grids: dict[str, list],
         pred_grids: dict[str, list],
     ) -> None:
-        """Evaluate a sample for each metric using a dict of grids.
+        """Evaluate two table collections, with each table represented in grid format.
+
+        Each input is a dict with keys matching the metrics tracked by the evaluator.
 
         Args:
             true_grids: Dict mapping metric name to list of ground truth grids.
@@ -1021,7 +930,9 @@ class GritsEvaluator:
         true_grids: list,
         pred_grids: list,
     ) -> None:
-        """Evaluate a sample for a single metric using lists of grids.
+        """Evaluate two table collections, with each table represented in grid format.
+
+        This function is a simplification of eval_grids_by_metric() for the case where the evaluator only tracks a single GriTS metric.
 
         Args:
             true_grids: List of ground truth grids.
@@ -1040,7 +951,7 @@ class GritsEvaluator:
         self._evaluators[metric].eval_grids(true_grids, pred_grids)
 
     def eval_htmls(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
-        """Parse HTML tables and evaluate the configured metrics.
+        """Evaluate two table collections, with each table represented in HTML format.
 
         HTML tables do not contain bounding box information, so the 'loc' metric
         cannot be evaluated with this method.
@@ -1063,57 +974,57 @@ class GritsEvaluator:
                 "Initialize GritsEvaluator() without 'loc' to proceed with evaluation."
             )
 
-        true_cell_dicts = []
+        true_cell_lists = []
         for true_html in true_htmls:
-            cell_dicts = html_to_cell_dicts(true_html)
-            if cell_dicts is None:
+            cell_list = html_to_cell_list(true_html)
+            if cell_list is None:
                 raise ValueError(f"Failed to parse true_html: {true_html!r}")
-            true_cell_dicts.append(cell_dicts)
+            true_cell_lists.append(cell_list)
 
-        pred_cell_dicts = []
+        pred_cell_lists = []
         for pred_html in pred_htmls:
-            cell_dicts = html_to_cell_dicts(pred_html)
-            if cell_dicts is None:
+            cell_list = html_to_cell_list(pred_html)
+            if cell_list is None:
                 raise ValueError(f"Failed to parse pred_html: {pred_html!r}")
-            pred_cell_dicts.append(cell_dicts)
+            pred_cell_lists.append(cell_list)
 
-        self.eval_table_cell_dicts(true_cell_dicts, pred_cell_dicts)
+        self.eval_table_cell_lists(true_cell_lists, pred_cell_lists)
 
-    _GRID_CONVERSION_FUNCTIONS: dict[str, Callable[[list[dict[str, Any]]], list[list[Any]]]] = {
-        "con": cell_dicts_to_grid_con,
-        "loc": cell_dicts_to_grid_loc,
-        "top": cell_dicts_to_grid_top,
+    _GRID_CONVERSION_FUNCTIONS: dict[str, Callable[[list[TableCell]], list[list[Any]]]] = {
+        "con": cell_list_to_grid_con,
+        "loc": cell_list_to_grid_loc,
+        "top": cell_list_to_grid_top,
     }
 
-    def eval_table_cell_dicts(
+    def eval_table_cell_lists(
         self,
-        true_cell_dicts: list[list[dict[str, Any]]],
-        pred_cell_dicts: list[list[dict[str, Any]]],
+        true_cell_lists: list[list[TableCell]],
+        pred_cell_lists: list[list[TableCell]],
     ) -> None:
-        """Convert table cell dicts to grids and evaluate whichever metrics the evaluator tracks.
+        """Evaluate two table collections, with each table represented in the list[TableCell] format.
 
         Args:
-            true_cell_dicts: A list of lists of cell dicts, one list per ground truth table.
-            pred_cell_dicts: A list of lists of cell dicts, one list per predicted table.
+            true_cell_lists: A list of lists of TableCells, one list of TableCells per ground truth table.
+            pred_cell_lists: A list of lists of TableCells, one list of TableCells per predicted table.
 
         Raises:
-            TypeError: If a flat list of cell dicts is passed instead of a list of lists.
+            TypeError: If a flat list of TableCells is passed instead of a list of lists.
         """
-        if true_cell_dicts and isinstance(true_cell_dicts[0], dict):  # type: ignore[unreachable]
+        if true_cell_lists and isinstance(true_cell_lists[0], TableCell):  # type: ignore[unreachable]
             raise TypeError(
-                "eval_table_cell_dicts expects a list of lists of cell dicts, "
-                "not a single list of cell dicts."
+                "eval_table_cell_lists expects a list of lists of TableCells, "
+                "not a single list of TableCells."
             )
-        if pred_cell_dicts and isinstance(pred_cell_dicts[0], dict):  # type: ignore[unreachable]
+        if pred_cell_lists and isinstance(pred_cell_lists[0], TableCell):  # type: ignore[unreachable]
             raise TypeError(
-                "eval_table_cell_dicts expects a list of lists of cell dicts, "
-                "not a single list of cell dicts."
+                "eval_table_cell_lists expects a list of lists of TableCells, "
+                "not a single list of TableCells."
             )
 
         for metric, evaluator in self._evaluators.items():
             to_grid = self._GRID_CONVERSION_FUNCTIONS[metric]
-            true_grids = [to_grid(cd) for cd in true_cell_dicts]
-            pred_grids = [to_grid(cd) for cd in pred_cell_dicts]
+            true_grids = [to_grid(cd) for cd in true_cell_lists]
+            pred_grids = [to_grid(cd) for cd in pred_cell_lists]
             evaluator.eval_grids(true_grids, pred_grids)
 
     def _check_sample_counts(self) -> None:
