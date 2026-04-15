@@ -199,9 +199,9 @@ Tables in HTML format do not contain bounding box information for cells.
 To compute GriTS-Loc in addition to GriTS-Top and GriTS-Con, you can use the `TableCell` format to represent a table, then convert to all three grid types.
 
 ```python
-from grits import cell_list_to_grid_top, cell_list_to_grid_con, cell_list_to_grid_loc
+from grits import TableCell, cell_list_to_grid_top, cell_list_to_grid_con, cell_list_to_grid_loc
 
-# Define ground-truth and predicted tables as lists of TableCells with bounding boxes
+# Define a table as a list of TableCells with bounding boxes
 table_cell_list = [
     TableCell(row_nums=[0], column_nums=[0], cell_text="Name", bbox=[0, 0, 50, 20], is_column_header=True),
     TableCell(row_nums=[0], column_nums=[1], cell_text="Score", bbox=[50, 0, 100, 20], is_column_header=True),
@@ -220,53 +220,58 @@ grid_loc = cell_list_to_grid_loc(table_cell_list)
 print(grid_loc) # [[[0, 0, 50, 20], [50, 0, 100, 20]], [[0, 20, 50, 40], [50, 20, 100, 40]]]
 ```
 
-### Computing all three GriTS metrics using the `TableCell` format
+### Computing all three GriTS metrics simultaneously using the `TableCell` format
 
-The following example illustrates computing all three metrics for two tables in `TableCell` format.
+The following example illustrates computing all three metrics for two tables in `TableCell` format using `GritsEvaluator`. The evaluator handles the conversion from `TableCell` lists to grids internally.
 
 ```python
-from grits import TableCell, grits_top, grits_con, grits_loc
-from grits import cell_list_to_grid_top, cell_list_to_grid_con, cell_list_to_grid_loc
+from grits import GritsEvaluator, TableCell
+
+evaluator = GritsEvaluator(metrics=["top", "con", "loc"])
 
 # Define ground-truth and predicted tables as lists of TableCells with bounding boxes
-true_cells = [
+true_table = [
     TableCell(row_nums=[0], column_nums=[0], cell_text="Name", bbox=[0, 0, 50, 20]),
     TableCell(row_nums=[0], column_nums=[1], cell_text="Score", bbox=[50, 0, 100, 20]),
     TableCell(row_nums=[1], column_nums=[0], cell_text="Alice", bbox=[0, 20, 50, 40]),
     TableCell(row_nums=[1], column_nums=[1], cell_text="95", bbox=[50, 20, 100, 40]),
 ]
-pred_cells = [
+pred_table = [
     TableCell(row_nums=[0], column_nums=[0], cell_text="Name", bbox=[0, 0, 50, 20]),
     TableCell(row_nums=[0], column_nums=[1], cell_text="Score", bbox=[50, 0, 100, 20]),
     TableCell(row_nums=[1], column_nums=[0], cell_text="Alice", bbox=[0, 20, 55, 42]),
     TableCell(row_nums=[1], column_nums=[1], cell_text="90", bbox=[55, 20, 100, 42]),
 ]
 
-# Convert each table to topology, content, and location grids
-true_grid_top = cell_list_to_grid_top(true_cells)
-pred_grid_top = cell_list_to_grid_top(pred_cells)
-true_grid_con = cell_list_to_grid_con(true_cells)
-pred_grid_con = cell_list_to_grid_con(pred_cells)
-true_grid_loc = cell_list_to_grid_loc(true_cells)
-pred_grid_loc = cell_list_to_grid_loc(pred_cells)
+# Evaluate the sample (conversion from TableCell to grid representation is handled internally)
+evaluator.eval_table_cell_lists([true_table], [pred_table])
 
-# Compute all three GriTS metrics
-grits_top_score, _, _ = grits_top(true_grid_top, pred_grid_top)
-grits_con_score, _, _ = grits_con(true_grid_con, pred_grid_con)
-grits_loc_score, _, _ = grits_loc(true_grid_loc, pred_grid_loc)
+results = evaluator.compute_grits()
 
-print(f"GriTS_Top: {grits_top_score:.4f}") # GriTS_Top: 1.0000
-print(f"GriTS_Con: {grits_con_score:.4f}") # GriTS_Con: 0.8750
-print(f"GriTS_Loc: {grits_loc_score:.4f}") # GriTS_Loc: 0.9130
+print(f"GriTS_Top: {results['grits_top']:.4f}") # GriTS_Top: 1.0000
+print(f"GriTS_Con: {results['grits_con']:.4f}") # GriTS_Con: 0.8750
+print(f"GriTS_Loc: {results['grits_loc']:.4f}") # GriTS_Loc: 0.9130
+```
+
+### Table extraction (TE) versus table structure recognition (TSR)
+
+```GritsEvaluator``` evaluates table extraction (TE) performance.
+Evaluation for TSR is a special case of evaluation for TE.
+
+In all cases, we use ```GritsEvaluator``` and evaluate a list of ground truth tables with a list of predicted tables.
+TSR corresponds to the case where there is exactly one ground truth table in the list and one predicted table in the list.
+
+```python
+evaluator.eval_table_cell_lists([true_table], [pred_table]) # TSR evaluation, a special case of TE evaluation
 ```
 
 ## Metrics
 
 | Metric | Function | Measures |
 |--------|----------|----------|
-| GriTS_Con | `grits_con` | Cell text content similarity (using LCS) |
-| GriTS_Top | `grits_top` | Cell topology / spanning structure (using IoU of relative spans) |
-| GriTS_Loc | `grits_loc` | Cell spatial location similarity (using IoU of bounding boxes) |
+| GriTS<sub>Con</sub> | `grits_con` | Cell text content similarity (using LCS) |
+| GriTS<sub>Top</sub> | `grits_top` | Cell topology / spanning structure (using IoU of relative spans) |
+| GriTS<sub>Loc</sub> | `grits_loc` | Cell spatial location similarity (using IoU of bounding boxes) |
 
 These functions return a tuple of (F1-score, precision, recall). For more detailed results, use `grits_con_matching`, `grits_top_matching`, and `grits_loc_matching`, which return a `GritsMatchingResult` dataclass with named fields such as `true_positive_score`, `true_grid_scores`, and `is_exact_match`.
 
