@@ -892,7 +892,7 @@ class _GritsMetricEvaluator:
 
 
 class GritsEvaluator:
-    """Tracks multiple GriTS metrics simultaneously by composing single-metric evaluators."""
+    """Evaluates a set of GriTS metrics one-sample-at-a-time and computes aggregate metrics over all samples."""
 
     def __init__(self, metrics: list[str] | None = None) -> None:
         """Initialize the evaluator with the specified metrics.
@@ -914,7 +914,9 @@ class GritsEvaluator:
         true_grids: dict[str, list],
         pred_grids: dict[str, list],
     ) -> None:
-        """Evaluate a sample for each metric using a dict of grids.
+        """Evaluate two table collections, with each table represented in grid format.
+
+        Each input is a dict with keys matching the metrics tracked by the evaluator.
 
         Args:
             true_grids: Dict mapping metric name to list of ground truth grids.
@@ -928,7 +930,9 @@ class GritsEvaluator:
         true_grids: list,
         pred_grids: list,
     ) -> None:
-        """Evaluate a sample for a single metric using lists of grids.
+        """Evaluate two table collections, with each table represented in grid format.
+
+        This function is a simplification of eval_grids_by_metric() for the case where the evaluator only tracks a single GriTS metric. 
 
         Args:
             true_grids: List of ground truth grids.
@@ -947,7 +951,7 @@ class GritsEvaluator:
         self._evaluators[metric].eval_grids(true_grids, pred_grids)
 
     def eval_htmls(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
-        """Parse HTML tables and evaluate the configured metrics.
+        """Evaluate two table collections, with each table represented in HTML format.
 
         HTML tables do not contain bounding box information, so the 'loc' metric
         cannot be evaluated with this method.
@@ -997,11 +1001,11 @@ class GritsEvaluator:
         true_cell_lists: list[list[TableCell]],
         pred_cell_lists: list[list[TableCell]],
     ) -> None:
-        """Convert TableCells to grids and evaluate whichever metrics the evaluator tracks.
+        """Evaluate two table collections, with each table represented in the list[TableCell] format.
 
         Args:
-            true_cell_lists: A list of lists of TableCells, one list per ground truth table.
-            pred_cell_lists: A list of lists of TableCells, one list per predicted table.
+            true_cell_lists: A list of lists of TableCells, one list of TableCells per ground truth table.
+            pred_cell_lists: A list of lists of TableCells, one list of TableCells per predicted table.
 
         Raises:
             TypeError: If a flat list of TableCells is passed instead of a list of lists.
