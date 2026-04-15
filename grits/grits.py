@@ -932,7 +932,7 @@ class GritsEvaluator:
     ) -> None:
         """Evaluate two table collections, with each table represented in grid format.
 
-        This function is a simplification of eval_grids_by_metric() for the case where the evaluator only tracks a single GriTS metric. 
+        This function is a simplification of eval_grids_by_metric() for the case where the evaluator only tracks a single GriTS metric.
 
         Args:
             true_grids: List of ground truth grids.

@@ -118,9 +118,7 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
     return table_cells
 
 
-def _cell_list_to_grid(
-    cell_list: list[TableCell], key: str, default_value: Any
-) -> list[list[Any]]:
+def _cell_list_to_grid(cell_list: list[TableCell], key: str, default_value: Any) -> list[list[Any]]:
     """Convert from a list of TableCells to a matrix of grid cell features.
 
     This matrix representation is the input to GriTS.
