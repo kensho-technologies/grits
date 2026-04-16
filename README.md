@@ -277,10 +277,34 @@ These functions return a tuple of (F1-score, precision, recall). For more detail
 
 For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con_matching`, `hungarian_grits_top_matching`, and `hungarian_grits_loc_matching`. These return a `HungarianGritsMatchingResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
 
-## References
-
-- B. Smock, R. Pesala, R. Abraham. [GriTS: Grid Table Similarity Metric for Table Structure Recognition](https://arxiv.org/abs/2203.12555). ICDAR 2023.
-- B. Smock, V. Faucon-Morin, M. Sokolov, L. Liang, T. Khanam, A. Ramesh, M. Courtland. [PubTables-v2: A New Large-Scale Dataset for Full-Page and Multi-Page Table Extraction](https://arxiv.org/abs/2512.10888). 2025.
+## Citing
+If you use this package or GriTS in your work, here is how to cite us:
+```
+@article{smock2025pubtables,
+  title={Pub{T}ables-v2: A new large-scale dataset for full-page and multi-page table extraction},
+  author={Smock, Brandon and Faucon-Morin, Valerie and Sokolov, Max and Liang, Libin and Khanam, Tayyibah and Ramesh, Amrit and Courtland, Maury},
+  journal={arXiv preprint arXiv:2512.10888},
+  year={2025}
+}
+```
+```
+@software{smock2026grits,
+  author = {Smock, Brandon and Liang, Libin and Sokolov, Max},
+  title = {{GriTS Metric for Table Extraction}},
+  url = {https://github.com/kensho-technologies/grits},
+  year = {2026}
+}
+```
+```
+@inproceedings{smock2023grits,
+  title={Gri{TS}: Grid table similarity metric for table structure recognition},
+  author={Smock, Brandon and Pesala, Rohith and Abraham, Robin},
+  booktitle={International Conference on Document Analysis and Recognition},
+  pages={535--549},
+  year={2023},
+  organization={Springer}
+}
+```
 
 ## License
 
