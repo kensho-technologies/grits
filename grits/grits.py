@@ -310,7 +310,7 @@ def _build_pre_computed_rewards(
     value_to_id: dict = {}
     unique_values: list = []
 
-    def _to_hashable(value):
+    def _to_hashable(value: Any) -> Any:
         if isinstance(value, (tuple, np.ndarray)) and len(value) == 2:
             if isinstance(value[0], BBox):
                 return (value[0].coordinates, value[1])
@@ -344,9 +344,7 @@ def _build_pre_computed_rewards(
                 unique_values[true_id], unique_values[pred_id]
             )
 
-    return unique_pair_rewards[
-        true_value_ids[:, :, None, None], pred_value_ids[None, None, :, :]
-    ]
+    return unique_pair_rewards[true_value_ids[:, :, None, None], pred_value_ids[None, None, :, :]]
 
 
 def factored_2dmss(
@@ -387,11 +385,15 @@ def factored_2dmss(
     # alignment score exceeds the maximum possible score from any smaller
     # submatrix, the identity alignment is provably optimal—skip the full DP.
     if true_shape == pred_shape:
-        grid_scores = np.array([
-            [pre_computed_rewards[true_row, true_col, true_row, true_col]
-             for true_col in range(true_grid_n_cols)]
-            for true_row in range(true_grid_n_rows)
-        ])
+        grid_scores = np.array(
+            [
+                [
+                    pre_computed_rewards[true_row, true_col, true_row, true_col]
+                    for true_col in range(true_grid_n_cols)
+                ]
+                for true_row in range(true_grid_n_rows)
+            ]
+        )
         true_positive_score = float(grid_scores.sum())
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
             is_exact_match = true_positive_score == num_true_cells == num_pred_cells
