@@ -1,6 +1,5 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 import dataclasses
-import itertools
 from typing import Any, Callable
 
 import numpy as np
@@ -115,27 +114,23 @@ def _traceback(pointers: np.ndarray) -> tuple[list[int], list[int]]:
 
 
 def _align_1d(
-    sequence1: list[tuple[int, int]],
-    sequence2: list[tuple[int, int]],
-    reward_lookup: dict[tuple[int, int, int, int], float],
+    pre_computed_rewards: np.ndarray,
     return_alignment: bool = False,
 ) -> float | tuple[list[int], list[int], float]:
-    """Performs dynamic programming alignment between two sequences using memoized rewards.
-
-    Memoization is an optimization technique that stores previously computed results to avoid redundant calculations.
+    """Performs dynamic programming alignment between two sequences using a precomputed reward matrix.
 
     Args:
-        sequence1: First sequence of index pairs.
-        sequence2: Second sequence of index pairs.
-        reward_lookup: Lookup table mapping index pairs to reward values.
-        return_alignment: If True, returns the alignment indices along with the score. Defaults to False.
+        pre_computed_rewards: Precomputed reward matrix of shape (sequence1_length, sequence2_length),
+            where entry [i, j] is the reward for aligning element i of sequence 1 with element j
+            of sequence 2.
+        return_alignment: If True, returns the alignment indices along with the score.
+            Defaults to False.
 
     Returns:
         If `return_alignment` is False, returns just the alignment score.
         Otherwise, returns a tuple containing aligned indices of both sequences and the alignment score.
     """
-    sequence1_length = len(sequence1)
-    sequence2_length = len(sequence2)
+    sequence1_length, sequence2_length = pre_computed_rewards.shape
 
     # Only allocate pointers when traceback is needed, since this function
     # is called many times from _align_2d_outer with return_alignment=False
@@ -145,8 +140,7 @@ def _align_1d(
 
     for seq1_idx in range(1, sequence1_length + 1):
         for seq2_idx in range(1, sequence2_length + 1):
-            # Compute reward
-            reward = reward_lookup[sequence1[seq1_idx - 1] + sequence2[seq2_idx - 1]]
+            reward = pre_computed_rewards[seq1_idx - 1, seq2_idx - 1]
 
             # Compute possible alignment scores
             diag_score = scores[seq1_idx - 1, seq2_idx - 1] + reward
@@ -179,61 +173,65 @@ def _align_1d(
 
 
 def _align_2d_outer(
-    true_shape: tuple[int, int],
-    pred_shape: tuple[int, int],
-    reward_lookup: dict[tuple[int, int, int, int], float],
+    pre_computed_rewards: np.ndarray,
+    axis: str,
 ) -> tuple[list[int], list[int], float]:
     """Performs dynamic programming matrix alignment for sequences-of-sequences.
 
-    Aligns two outer sequences, where each entry is also a sequence, using 1D sequence alignment scores.
+    Aligns two outer sequences, where each entry is also a sequence, using 1D sequence
+    alignment scores computed via _align_1d.
+
+    When axis="rows", the outer alignment matches rows of the true grid to rows of the predicted
+    grid, using column-level alignment scores as rewards. When axis="columns", the outer alignment
+    matches columns, using row-level alignment scores as rewards.
 
     Args:
-        true_shape: Shape of the true sequence (rows, columns).
-        pred_shape: Shape of the predicted sequence (rows, columns).
-        reward_lookup: Lookup table mapping index pairs to reward values.
+        pre_computed_rewards: Precomputed 4D reward array of shape
+            (true_n_rows, true_n_cols, pred_n_rows, pred_n_cols), where entry
+            [true_row, true_col, pred_row, pred_col] is the cell-level reward for
+            true cell (true_row, true_col) vs pred cell (pred_row, pred_col).
+        axis: "rows" to align rows (outer dimension) using column alignment as inner scores,
+              "columns" to align columns (outer dimension) using row alignment as inner scores.
 
     Returns:
         A tuple containing aligned indices for both sequences and the final alignment score.
     """
-
-    # Pre-build column index sequences for each row to avoid repeated allocation in the inner loop
-    true_row_sequences = [
-        [(true_row, true_col_idx) for true_col_idx in range(true_shape[1])]
-        for true_row in range(true_shape[0])
-    ]
-    pred_row_sequences = [
-        [(pred_row, pred_col_idx) for pred_col_idx in range(pred_shape[1])]
-        for pred_row in range(pred_shape[0])
-    ]
+    if axis == "rows":
+        true_sequence_length = pre_computed_rewards.shape[0]
+        pred_sequence_length = pre_computed_rewards.shape[2]
+    else:
+        true_sequence_length = pre_computed_rewards.shape[1]
+        pred_sequence_length = pre_computed_rewards.shape[3]
 
     # Initialize dynamic programming tables
-    scores, pointers = _initialize_dp(true_shape[0], pred_shape[0])
+    scores, pointers = _initialize_dp(true_sequence_length, pred_sequence_length)
     assert pointers is not None
 
-    for true_row_idx in range(1, true_shape[0] + 1):
-        for pred_row_idx in range(1, pred_shape[0] + 1):
+    for true_idx in range(1, true_sequence_length + 1):
+        for pred_idx in range(1, pred_sequence_length + 1):
             # Compute alignment scores for inner sequences
-            reward = _align_1d(
-                true_row_sequences[true_row_idx - 1],
-                pred_row_sequences[pred_row_idx - 1],
-                reward_lookup,
-            )
+            if axis == "rows":
+                inner_rewards = pre_computed_rewards[true_idx - 1, :, pred_idx - 1, :]
+            else:
+                inner_rewards = pre_computed_rewards[:, true_idx - 1, :, pred_idx - 1]
+
+            reward = _align_1d(inner_rewards)
 
             # Compute possible alignment scores
-            diag_score = scores[true_row_idx - 1, pred_row_idx - 1] + reward
-            skip_pred_row_score = scores[true_row_idx, pred_row_idx - 1]
-            skip_true_row_score = scores[true_row_idx - 1, pred_row_idx]
+            diag_score = scores[true_idx - 1, pred_idx - 1] + reward
+            skip_pred_score = scores[true_idx, pred_idx - 1]
+            skip_true_score = scores[true_idx - 1, pred_idx]
 
             # Choose the best alignment option
-            max_score = max(diag_score, skip_true_row_score, skip_pred_row_score)
-            scores[true_row_idx, pred_row_idx] = max_score
+            max_score = max(diag_score, skip_true_score, skip_pred_score)
+            scores[true_idx, pred_idx] = max_score
 
             if diag_score == max_score:
-                pointers[true_row_idx, pred_row_idx] = 0
-            elif skip_true_row_score == max_score:
-                pointers[true_row_idx, pred_row_idx] = -1
+                pointers[true_idx, pred_idx] = 0
+            elif skip_true_score == max_score:
+                pointers[true_idx, pred_idx] = -1
             else:
-                pointers[true_row_idx, pred_row_idx] = 1
+                pointers[true_idx, pred_idx] = 1
 
     score = scores[-1, -1]
 
@@ -271,6 +269,86 @@ class GritsMatchingResult:
     is_exact_match: bool
 
 
+def _build_pre_computed_rewards(
+    true_grid: np.ndarray,
+    pred_grid: np.ndarray,
+    reward_function: Callable,
+) -> np.ndarray:
+    """Build a 4D reward array with unique-value caching to avoid redundant reward computations.
+
+    Maps each cell value in both grids to an integer index, computes the reward function
+    only for unique (true_value, pred_value) pairs, then broadcasts into the full 4D array
+    using NumPy fancy indexing.
+
+    This is an optimization over computing the reward function for every
+    (true_row, true_col, pred_row, pred_col) combination, which would require
+    true_n_rows * true_n_cols * pred_n_rows * pred_n_cols calls. With caching,
+    only num_unique_true * num_unique_pred calls are needed.
+
+    Args:
+        true_grid: Ground truth grid of shape (true_n_rows, true_n_cols).
+        pred_grid: Predicted grid of shape (pred_n_rows, pred_n_cols).
+        reward_function: Function to compute similarity between two cell values.
+
+    Returns:
+        np.ndarray of shape (true_n_rows, true_n_cols, pred_n_rows, pred_n_cols) where entry
+        [true_row, true_col, pred_row, pred_col] contains
+        reward_function(true_grid[true_row][true_col], pred_grid[pred_row][pred_col]).
+    """
+    true_n_rows = len(true_grid)
+    true_n_cols = _get_n_cols(true_grid.tolist())
+    pred_n_rows = len(pred_grid)
+    pred_n_cols = _get_n_cols(pred_grid.tolist())
+
+    true_values = [
+        [true_grid[row][col] for col in range(true_n_cols)] for row in range(true_n_rows)
+    ]
+    pred_values = [
+        [pred_grid[row][col] for col in range(pred_n_cols)] for row in range(pred_n_rows)
+    ]
+
+    value_to_id: dict = {}
+    unique_values: list = []
+
+    def _to_hashable(value):
+        if isinstance(value, (tuple, np.ndarray)) and len(value) == 2:
+            if isinstance(value[0], BBox):
+                return (value[0].coordinates, value[1])
+        return value
+
+    true_value_ids = np.empty((true_n_rows, true_n_cols), dtype=np.intp)
+    for row in range(true_n_rows):
+        for col in range(true_n_cols):
+            key = _to_hashable(true_values[row][col])
+            if key not in value_to_id:
+                value_to_id[key] = len(unique_values)
+                unique_values.append(true_values[row][col])
+            true_value_ids[row, col] = value_to_id[key]
+
+    pred_value_ids = np.empty((pred_n_rows, pred_n_cols), dtype=np.intp)
+    for row in range(pred_n_rows):
+        for col in range(pred_n_cols):
+            key = _to_hashable(pred_values[row][col])
+            if key not in value_to_id:
+                value_to_id[key] = len(unique_values)
+                unique_values.append(pred_values[row][col])
+            pred_value_ids[row, col] = value_to_id[key]
+
+    distinct_true_ids = set(true_value_ids.ravel())
+    distinct_pred_ids = set(pred_value_ids.ravel())
+    num_unique_values = len(unique_values)
+    unique_pair_rewards = np.zeros((num_unique_values, num_unique_values))
+    for true_id in distinct_true_ids:
+        for pred_id in distinct_pred_ids:
+            unique_pair_rewards[true_id, pred_id] = reward_function(
+                unique_values[true_id], unique_values[pred_id]
+            )
+
+    return unique_pair_rewards[
+        true_value_ids[:, :, None, None], pred_value_ids[None, None, :, :]
+    ]
+
+
 def factored_2dmss(
     true_grid: np.ndarray, pred_grid: np.ndarray, reward_function: Callable
 ) -> GritsMatchingResult:
@@ -303,18 +381,18 @@ def factored_2dmss(
     true_shape = (true_grid_n_rows, true_grid_n_cols)
     pred_shape = (pred_grid_n_rows, pred_grid_n_cols)
 
+    pre_computed_rewards = _build_pre_computed_rewards(true_grid, pred_grid, reward_function)
+
     # Early exit: if matrices are the same shape and the elementwise (identity)
     # alignment score exceeds the maximum possible score from any smaller
     # submatrix, the identity alignment is provably optimal—skip the full DP.
     if true_shape == pred_shape:
-        grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
-        true_positive_score = 0.0
-        for true_row, true_col in itertools.product(range(true_shape[0]), range(true_shape[1])):
-            cell_score = reward_function(
-                true_grid[true_row][true_col], pred_grid[true_row][true_col]
-            )
-            grid_scores[true_row, true_col] = cell_score
-            true_positive_score += cell_score
+        grid_scores = np.array([
+            [pre_computed_rewards[true_row, true_col, true_row, true_col]
+             for true_col in range(true_grid_n_cols)]
+            for true_row in range(true_grid_n_rows)
+        ])
+        true_positive_score = float(grid_scores.sum())
         if true_positive_score >= (max(true_shape) - 1) * min(true_shape):
             is_exact_match = true_positive_score == num_true_cells == num_pred_cells
             return GritsMatchingResult(
@@ -325,18 +403,8 @@ def factored_2dmss(
                 is_exact_match=is_exact_match,
             )
 
-    pre_computed_rewards = {}
-    transpose_rewards = {}
-    for true_row, true_col, pred_row, pred_col in itertools.product(
-        range(true_shape[0]), range(true_shape[1]), range(pred_shape[0]), range(pred_shape[1])
-    ):
-        reward = reward_function(true_grid[true_row][true_col], pred_grid[pred_row][pred_col])
-
-        pre_computed_rewards[(true_row, true_col, pred_row, pred_col)] = reward
-        transpose_rewards[(true_col, true_row, pred_col, pred_row)] = reward
-
     true_row_nums, pred_row_nums, row_alignment_score = _align_2d_outer(
-        true_shape, pred_shape, pre_computed_rewards
+        pre_computed_rewards, axis="rows"
     )
 
     # If matrices have the same number of columns, then after matching/selecting rows,
@@ -346,18 +414,14 @@ def factored_2dmss(
         true_grid_scores = np.zeros((true_grid_n_rows, true_grid_n_cols))
         pred_grid_scores = np.zeros((pred_grid_n_rows, pred_grid_n_cols))
         true_positive_score = 0.0
-        for aligned_row_idx, col in itertools.product(
-            range(len(true_row_nums)), range(true_shape[1])
-        ):
+        for aligned_row_idx in range(len(true_row_nums)):
             true_row = true_row_nums[aligned_row_idx]
             pred_row = pred_row_nums[aligned_row_idx]
-            cell_score = reward_function(
-                true_grid[true_row][col],
-                pred_grid[pred_row][col],
-            )
-            true_grid_scores[true_row, col] = cell_score
-            pred_grid_scores[pred_row, col] = cell_score
-            true_positive_score += cell_score
+            for col in range(true_shape[1]):
+                cell_score = pre_computed_rewards[true_row, col, pred_row, col]
+                true_grid_scores[true_row, col] = cell_score
+                pred_grid_scores[pred_row, col] = cell_score
+                true_positive_score += cell_score
         if true_positive_score >= len(true_row_nums) * true_shape[1] - 1:
             is_exact_match = true_positive_score == num_true_cells == num_pred_cells
             return GritsMatchingResult(
@@ -369,7 +433,7 @@ def factored_2dmss(
             )
 
     true_column_nums, pred_column_nums, col_alignment_score = _align_2d_outer(
-        true_shape[::-1], pred_shape[::-1], transpose_rewards
+        pre_computed_rewards, axis="columns"
     )
 
     true_positive_score_upper_bound = min(row_alignment_score, col_alignment_score)
@@ -380,7 +444,7 @@ def factored_2dmss(
     for true_row_num, pred_row_num in zip(true_row_nums, pred_row_nums):
         for true_column_num, pred_column_num in zip(true_column_nums, pred_column_nums):
             grid_cell_score = pre_computed_rewards[
-                (true_row_num, true_column_num, pred_row_num, pred_column_num)
+                true_row_num, true_column_num, pred_row_num, pred_column_num
             ]
             true_grid_scores[true_row_num, true_column_num] = grid_cell_score
             pred_grid_scores[pred_row_num, pred_column_num] = grid_cell_score
