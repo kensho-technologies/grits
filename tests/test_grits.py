@@ -309,7 +309,7 @@ class TestHtmlToCellList:
         assert cell_list[1].is_column_header is False
 
     def test_invalid_html_returns_none(self):
-        assert html_to_cell_list("not valid xml at all <<<") is None
+        assert html_to_cell_list("not a valid table") is None
 
     def test_html_with_entities(self):
         table_html = "<table><tr><td>Hello&nbsp;World</td><td>B</td></tr></table>"
@@ -344,7 +344,7 @@ class TestHtmlToGrids:
         assert result["top"] == cell_list_to_grid_top(cell_list)
 
     def test_invalid_html_returns_none(self):
-        assert html_to_grids("not valid xml at all <<<") is None
+        assert html_to_grids("not a valid table") is None
 
 
 class TestIou:

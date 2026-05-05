@@ -1,6 +1,19 @@
 # Changelog
 
-## 0.6.0 (Unreleased)
+## 0.6.1 (Unreleased)
+
+Improve HTML parsing robustness and fix a division-by-zero bug.
+
+### Added
+- `lxml` as a required dependency for robust HTML parsing.
+
+### Changed
+- Switched HTML parsing from `xml.etree.ElementTree` to `lxml.html` for tolerance of common HTML quirks (entities like `&nbsp;`, unclosed tags like `<br>`, missing wrappers).
+
+### Fixed
+- `compute_mean_grits_per_sample` no longer raises `ZeroDivisionError` for samples with no ground truth tables.
+
+## 0.6.0
 
 Introduce `TableCell` dataclass, reorganize grid conversion code, and add HTML-to-grid convenience functions.
 
