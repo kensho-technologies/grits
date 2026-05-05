@@ -311,6 +311,20 @@ class TestHtmlToCellList:
     def test_invalid_html_returns_none(self):
         assert html_to_cell_list("not valid xml at all <<<") is None
 
+    def test_html_with_entities(self):
+        table_html = "<table><tr><td>Hello&nbsp;World</td><td>B</td></tr></table>"
+        cell_list = html_to_cell_list(table_html)
+        assert cell_list is not None
+        assert len(cell_list) == 2
+        assert cell_list[0].cell_text == "Hello World"
+
+    def test_html_with_unclosed_br(self):
+        table_html = "<table><tr><td>Line1<br>Line2</td><td>B</td></tr></table>"
+        cell_list = html_to_cell_list(table_html)
+        assert cell_list is not None
+        assert len(cell_list) == 2
+        assert cell_list[0].cell_text == "Line1Line2"
+
 
 class TestHtmlToGrids:
     def test_simple_table(self):

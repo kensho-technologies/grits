@@ -2,7 +2,8 @@
 from collections import defaultdict
 import dataclasses
 from typing import Any
-import xml.etree.ElementTree as ET
+
+from lxml import etree, html
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -52,7 +53,7 @@ class TableCell:
 
 
 def html_to_cell_list(table_html: str) -> list[TableCell] | None:
-    """Parse an HTML representation of a table into a list of cells.
+    """Parse an HTML representation of a table into a list of cells, tolerant of common HTML quirks.
 
     Args:
         table_html: HTML string of the table to parse.
@@ -62,8 +63,12 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
         or None if the HTML cannot be parsed.
     """
     try:
-        tree = ET.fromstring(table_html)
-    except ET.ParseError:
+        doc = html.fromstring(table_html)
+    except etree.ParserError:
+        return None
+
+    table = doc if doc.tag == "table" else doc.find(".//table")
+    if table is None:
         return None
 
     table_cells = []
@@ -71,24 +76,16 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
     occupied_columns_by_row: defaultdict[int, set[int]] = defaultdict(set)
     current_row = -1
 
-    # DFS traversal of the HTML tree to extract cell (td/th) elements
-    stack = []
-    stack.append((tree, False))
-    while len(stack) > 0:
+    stack: list[tuple] = [(table, False)]
+    while stack:
         current, in_header = stack.pop()
 
         if current.tag == "tr":
             current_row += 1
 
-        if current.tag == "td" or current.tag == "th":
-            if "colspan" in current.attrib:
-                colspan = int(current.attrib["colspan"])
-            else:
-                colspan = 1
-            if "rowspan" in current.attrib:
-                rowspan = int(current.attrib["rowspan"])
-            else:
-                rowspan = 1
+        if current.tag in ("td", "th"):
+            colspan = int(current.attrib.get("colspan", 1))
+            rowspan = int(current.attrib.get("rowspan", 1))
             row_nums = list(range(current_row, current_row + rowspan))
             try:
                 max_occupied_column = max(occupied_columns_by_row[current_row])
@@ -107,13 +104,12 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
                 row_nums=row_nums,
                 column_nums=column_nums,
                 is_column_header=current.tag == "th" or in_header,
-                cell_text=" ".join(current.itertext()),
+                cell_text=" ".join(current.text_content().split()),
             )
             table_cells.append(cell)
 
-        children = list(current)
-        for child in children[::-1]:
-            stack.append((child, in_header or current.tag == "th" or current.tag == "thead"))
+        for child in reversed(list(current)):
+            stack.append((child, in_header or current.tag in ("th", "thead")))
 
     return table_cells
 
