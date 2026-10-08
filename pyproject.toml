@@ -6,7 +6,8 @@ authors = [
 ]
 description = "GriTS metrics"
 readme = "README.md"
-license = "MIT"
+license = "MIT AND Apache-2.0"
+license-files = ["LICENSE", "LICENSES/*"]
 requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -21,9 +22,11 @@ classifiers = [
 ]
 
 dependencies = [
+    "apted>=1.0.3",
     "lxml>=4.9",
     "numpy>=1.26",
     "pylcs>=0.1.1",
+    "rapidfuzz>=3.0",
     "scipy>=1.15,<2"
 ]
 
@@ -42,8 +45,11 @@ documentation = "https://github.com/kensho-technologies/grits#readme"
 changelog = "https://github.com/kensho-technologies/grits/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-scm>=8"]
+requires = ["setuptools>=77.0", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["grits*"]
 
 [tool.setuptools_scm]
 version_file = "grits/version.py"
