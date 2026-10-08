@@ -1,4 +1,14 @@
 # Copyright 2025-present Kensho Technologies, LLC.
+from ._teds import (
+    HungarianTedsMatchingResult,
+    TedsEvaluator,
+    hungarian_teds,
+    hungarian_teds_matching,
+    hungarian_teds_struct,
+    hungarian_teds_struct_matching,
+    teds,
+    teds_struct,
+)
 from .bbox import (
     BBox,
     BBoxProtocol,
@@ -71,6 +81,15 @@ __all__ = [
     "hungarian_grits_top",
     "hungarian_grits_top_matching",
     "GritsEvaluator",
+    # TEDS metrics
+    "HungarianTedsMatchingResult",
+    "hungarian_teds",
+    "hungarian_teds_matching",
+    "hungarian_teds_struct",
+    "hungarian_teds_struct_matching",
+    "teds",
+    "teds_struct",
+    "TedsEvaluator",
     # utilities
     "compute_fscore",
     "iou",
