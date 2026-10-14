@@ -8,7 +8,8 @@ Improve HTML parsing robustness and fix a division-by-zero bug.
 - `lxml` as a required dependency for robust HTML parsing.
 
 ### Changed
-- Switched HTML parsing from `xml.etree.ElementTree` to `lxml.html` for tolerance of common HTML quirks (entities like `&nbsp;`, unclosed tags like `<br>`, missing wrappers).
+- Switched HTML parsing from `xml.etree.ElementTree` to `lxml.html` for tolerance of common HTML quirks (entities like `&nbsp;`, unclosed tags like `<br>`).
+- Cell text extracted from HTML now matches the displayed text: `<br>` and block elements (e.g. `<p>`, `<li>`) separate text with a space, inline elements (e.g. `<b>`, `<sub>`) don't, whitespace is collapsed, and invisible characters (zero-width spaces, soft hyphens) are removed. This can change GriTS-Con scores for HTML input compared to 0.6.0 (e.g. `H<sub>2</sub>O` was `H 2 O` and is now `H2O`).
 
 ### Fixed
 - `compute_grits` and `compute_mean_grits_per_sample` no longer raise `ZeroDivisionError` for samples with no ground truth tables.

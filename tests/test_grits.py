@@ -323,7 +323,54 @@ class TestHtmlToCellList:
         cell_list = html_to_cell_list(table_html)
         assert cell_list is not None
         assert len(cell_list) == 2
-        assert cell_list[0].cell_text == "Line1Line2"
+        assert cell_list[0].cell_text == "Line1 Line2"
+
+    @pytest.mark.parametrize(
+        "cell_html,expected_text",
+        [
+            ("Total<br/>2020", "Total 2020"),
+            ("H<sub>2</sub>O", "H2O"),
+            ("x<sup>2</sup>", "x2"),
+            ("<b>Net</b> <i>income</i>", "Net income"),
+            ("<b>Net</b><i>income</i>", "Netincome"),
+            ("<p>First</p><p>Second</p>", "First Second"),
+            ("<ul><li>One</li><li>Two</li></ul>", "One Two"),
+            ("<div>A</div>B", "A B"),
+            ("\n  Net\n  income\n", "Net income"),
+            ("A&nbsp;&nbsp;B", "A B"),
+            ("Net\u200bincome", "Netincome"),
+            ("co\u00adoperate", "cooperate"),
+            ("A<!-- comment -->B", "AB"),
+            ("A<script>var x = 1;</script>B", "AB"),
+            (
+                "\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645",
+                "\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645",
+            ),
+            ("", ""),
+        ],
+        ids=[
+            "xhtml_br",
+            "subscript",
+            "superscript",
+            "inline_with_space",
+            "adjacent_inline",
+            "paragraphs",
+            "list_items",
+            "div_then_text",
+            "newlines_and_indent",
+            "nbsp",
+            "zero_width_space",
+            "soft_hyphen",
+            "comment",
+            "script",
+            "zero_width_non_joiner_kept",
+            "empty",
+        ],
+    )
+    def test_cell_text_matches_displayed_text(self, cell_html, expected_text):
+        cell_list = html_to_cell_list(f"<table><tr><td>{cell_html}</td></tr></table>")
+        assert cell_list is not None
+        assert cell_list[0].cell_text == expected_text
 
 
 class TestHtmlToGrids:
