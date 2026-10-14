@@ -824,14 +824,13 @@ class _GritsMetricEvaluator:
         f1, precision, recall = compute_fscore(
             total_true_positive_score, total_num_true, total_num_positives
         )
+        total_num_true_grids = sum(self.num_true_grids)
         cell_exact_match_accuracy = (
-            sum(self.num_exact_cell_matches) / total_num_true
-            if self.num_exact_cell_matches
-            else 0.0
+            sum(self.num_exact_cell_matches) / total_num_true if total_num_true > 0 else 0.0
         )
         grid_exact_match_accuracy = (
-            sum(self.num_exact_grid_matches) / sum(self.num_true_grids)
-            if self.num_exact_grid_matches
+            sum(self.num_exact_grid_matches) / total_num_true_grids
+            if total_num_true_grids > 0
             else 0.0
         )
         m = self._metric

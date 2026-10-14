@@ -541,6 +541,36 @@ class TestGritsMetricEvaluator:
         assert results["mean_grits_con_precision_per_sample"] == 1.0
         assert results["mean_grits_con_recall_per_sample"] == 1.0
 
+    def test_compute_grits_with_no_true_tables(self):
+        evaluator = _GritsMetricEvaluator(metric="con")
+        evaluator.eval_grids([], [[["A", "B"]]])
+        results = evaluator.compute_grits()
+        assert results["grits_con_precision"] == 0.0
+        assert results["grits_con_recall"] == 1.0
+        assert results["grits_con_cell_exact_match_accuracy"] == 0.0
+        assert results["grits_con_grid_exact_match_accuracy"] == 0.0
+
+    def test_compute_mean_grits_per_sample_with_no_true_tables(self):
+        evaluator = _GritsMetricEvaluator(metric="con")
+        evaluator.eval_grids([], [[["A", "B"]]])
+        results = evaluator.compute_mean_grits_per_sample()
+        assert results["mean_grits_con_precision_per_sample"] == 0.0
+        assert results["mean_grits_con_recall_per_sample"] == 1.0
+        assert "mean_grits_con_cell_exact_match_accuracy_per_sample" not in results
+        assert "mean_grits_con_grid_exact_match_accuracy_per_sample" not in results
+
+    def test_samples_with_no_true_tables_are_skipped_in_accuracy_averages(self):
+        evaluator = _GritsMetricEvaluator(metric="con")
+        grid = [["A", "B"]]
+        evaluator.eval_grids([grid], [grid])
+        evaluator.eval_grids([], [grid])
+        results = evaluator.compute_mean_grits_per_sample()
+        assert results["mean_grits_con_cell_exact_match_accuracy_per_sample"] == 1.0
+        assert results["mean_grits_con_grid_exact_match_accuracy_per_sample"] == 1.0
+        results = evaluator.compute_grits()
+        assert results["grits_con_cell_exact_match_accuracy"] == 1.0
+        assert results["grits_con_grid_exact_match_accuracy"] == 1.0
+
     def test_compute_mean_grits_per_sample_precision_recall_order(self):
         evaluator = _GritsMetricEvaluator(metric="con")
         # true: 1x2, pred: 1x3 — recall should be 1.0, precision should be 2/3
