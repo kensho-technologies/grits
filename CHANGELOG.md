@@ -19,6 +19,7 @@ Improve HTML parsing robustness and fix a division-by-zero bug.
 
 ### Changed
 - Switched HTML parsing from `xml.etree.ElementTree` to `lxml.html` for tolerance of common HTML quirks (entities like `&nbsp;`, unclosed tags like `<br>`).
+- Cell text extracted from HTML now matches the displayed text: `<br>` and block elements (e.g. `<p>`, `<li>`) separate text with a space, inline elements (e.g. `<b>`, `<sub>`) don't, whitespace is collapsed, and invisible characters (zero-width spaces, soft hyphens) are removed. `html_to_cell_list`, `html_to_grids`, and `GritsEvaluator.eval_htmls` can therefore produce different cell text than 0.6.0 for the same HTML (e.g. `H<sub>2</sub>O` was `H 2 O` and is now `H2O`). The GriTS metrics themselves are unchanged.
 
 ### Fixed
 - `compute_grits` and `compute_mean_grits_per_sample` no longer raise `ZeroDivisionError` for samples with no ground truth tables. If no sample has ground truth tables, exact match accuracies are 1.0, following the same convention as recall.
