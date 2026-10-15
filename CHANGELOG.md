@@ -14,6 +14,7 @@ Improve HTML parsing robustness and fix a division-by-zero bug.
 ### Fixed
 - `compute_grits` and `compute_mean_grits_per_sample` no longer raise `ZeroDivisionError` for samples with no ground truth tables.
 - HTML tables with cells outside a `<tr>` no longer crash grid conversion; such cells are placed in an implied row, as a browser displays them.
+- Invalid `colspan` and `rowspan` values (e.g. `"2px"`, `""`, `"0"`) are parsed the way a browser does, instead of crashing or dropping the cell.
 
 ## 0.6.0
 

@@ -326,6 +326,55 @@ class TestHtmlToCellList:
         assert cell_list is not None
         assert [cell.row_nums for cell in cell_list] == expected_rows
 
+    @pytest.mark.parametrize(
+        "span_attribute,expected_columns",
+        [
+            ('colspan="2"', [0, 1]),
+            ('colspan=" 2 "', [0, 1]),
+            ('colspan="+2"', [0, 1]),
+            ('colspan="2px"', [0, 1]),
+            ('colspan="2.9"', [0, 1]),
+            ('colspan=""', [0]),
+            ('colspan="abc"', [0]),
+            ('colspan="0"', [0]),
+            ('colspan="-1"', [0]),
+            ('colspan="5000"', list(range(1000))),
+        ],
+        ids=[
+            "valid",
+            "whitespace",
+            "plus_sign",
+            "trailing_text",
+            "decimal",
+            "empty",
+            "non_numeric",
+            "zero",
+            "negative",
+            "above_maximum",
+        ],
+    )
+    def test_colspan_parsed_like_a_browser(self, span_attribute, expected_columns):
+        cell_list = html_to_cell_list(f"<table><tr><td {span_attribute}>A</td></tr></table>")
+        assert cell_list is not None
+        assert cell_list[0].column_nums == expected_columns
+
+    @pytest.mark.parametrize(
+        "span_attribute,expected_rows",
+        [
+            ('rowspan="2"', [0, 1]),
+            ('rowspan="x"', [0]),
+            ('rowspan="0"', [0]),
+            ('rowspan="-1"', [0]),
+        ],
+        ids=["valid", "non_numeric", "zero", "negative"],
+    )
+    def test_rowspan_parsed_like_a_browser(self, span_attribute, expected_rows):
+        cell_list = html_to_cell_list(
+            f"<table><tr><td {span_attribute}>A</td></tr><tr><td>B</td></tr></table>"
+        )
+        assert cell_list is not None
+        assert cell_list[0].row_nums == expected_rows
+
     def test_table_without_tr_converts_to_grids(self):
         grids = html_to_grids("<table><td>A</td><td>B</td></table>")
         assert grids is not None

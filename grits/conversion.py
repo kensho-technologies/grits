@@ -1,6 +1,7 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 from collections import defaultdict
 import dataclasses
+import re
 from typing import Any
 
 from lxml import etree, html
@@ -67,6 +68,30 @@ _HIDDEN_TAGS = frozenset({"script", "style", "template"})
 
 # Characters that render as nothing: soft hyphen, zero-width space, word joiner, byte order mark
 _INVISIBLE_CHARACTERS = str.maketrans("", "", "\u00ad\u200b\u2060\ufeff")
+
+
+_LEADING_INTEGER = re.compile(r"\s*\+?(\d+)")
+
+# Maximum spans allowed by the HTML standard
+_MAX_COLSPAN = 1000
+_MAX_ROWSPAN = 65534
+
+
+def _parse_span(value: str | None, maximum: int) -> int:
+    """Parse a colspan or rowspan attribute the way a browser does.
+
+    Uses the leading integer (e.g. "2px" is 2). Missing, invalid, zero, or negative values are 1,
+    and values above the maximum are clamped to it.
+    """
+    if value is None:
+        return 1
+    match = _LEADING_INTEGER.match(value)
+    if match is None:
+        return 1
+    span = int(match.group(1))
+    if span == 0:
+        return 1
+    return min(span, maximum)
 
 
 def _collect_visible_text(element: html.HtmlElement, parts: list[str]) -> None:
@@ -139,8 +164,8 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
             if parent.tag != "tr" and parent is not implied_row_parent:
                 current_row += 1
                 implied_row_parent = parent
-            colspan = int(current.attrib.get("colspan", 1))
-            rowspan = int(current.attrib.get("rowspan", 1))
+            colspan = _parse_span(current.attrib.get("colspan"), _MAX_COLSPAN)
+            rowspan = _parse_span(current.attrib.get("rowspan"), _MAX_ROWSPAN)
             row_nums = list(range(current_row, current_row + rowspan))
             try:
                 max_occupied_column = max(occupied_columns_by_row[current_row])
