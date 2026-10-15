@@ -848,7 +848,8 @@ class _GritsMetricEvaluator:
         Returns:
             Dict with keys mean_grits_METRIC_per_sample, mean_grits_METRIC_precision_per_sample,
             mean_grits_METRIC_recall_per_sample, mean_grits_METRIC_cell_exact_match_accuracy_per_sample,
-            and mean_grits_METRIC_grid_exact_match_accuracy_per_sample.
+            and mean_grits_METRIC_grid_exact_match_accuracy_per_sample. The two exact match accuracies
+            are averaged only over samples with ground truth tables, and are omitted if there are none.
         """
         f1s = []
         precisions = []
