@@ -339,6 +339,10 @@ class TestHtmlToCellList:
             ('colspan="0"', [0]),
             ('colspan="-1"', [0]),
             ('colspan="5000"', list(range(1000))),
+            ('colspan="\u0662"', [0]),
+            ('colspan="\uff12"', [0]),
+            ('colspan="\u00a02"', [0]),
+            ('colspan="\v2"', [0]),
         ],
         ids=[
             "valid",
@@ -351,6 +355,10 @@ class TestHtmlToCellList:
             "zero",
             "negative",
             "above_maximum",
+            "arabic_indic_digit",
+            "fullwidth_digit",
+            "leading_nbsp",
+            "leading_vertical_tab",
         ],
     )
     def test_colspan_parsed_like_a_browser(self, span_attribute, expected_columns):

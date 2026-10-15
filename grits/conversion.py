@@ -70,7 +70,8 @@ _HIDDEN_TAGS = frozenset({"script", "style", "template"})
 _INVISIBLE_CHARACTERS = str.maketrans("", "", "\u00ad\u200b\u2060\ufeff")
 
 
-_LEADING_INTEGER = re.compile(r"\s*\+?(\d+)")
+# The HTML standard's rules for parsing integers, which allow only ASCII whitespace and digits
+_LEADING_INTEGER = re.compile(r"[\t\n\f\r ]*\+?([0-9]+)")
 
 # Maximum spans allowed by the HTML standard
 _MAX_COLSPAN = 1000
