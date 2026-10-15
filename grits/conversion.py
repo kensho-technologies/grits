@@ -53,23 +53,6 @@ class TableCell:
         return d
 
 
-# Elements that start a new line when rendered, so their text is separated from adjacent text
-_BLOCK_TAGS = frozenset(
-    {
-        "address", "article", "aside", "blockquote", "br", "caption", "dd", "div", "dl", "dt",
-        "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr",
-        "li", "main", "nav", "ol", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th",
-        "thead", "tr", "ul",
-    }
-)  # fmt: skip
-
-# Elements whose text is not rendered
-_HIDDEN_TAGS = frozenset({"script", "style", "template"})
-
-# Characters that render as nothing: soft hyphen, zero-width space, word joiner, byte order mark
-_INVISIBLE_CHARACTERS = str.maketrans("", "", "\u00ad\u200b\u2060\ufeff")
-
-
 # The HTML standard's rules for parsing integers, which allow only ASCII whitespace and digits
 _LEADING_INTEGER = re.compile(r"[\t\n\f\r ]*\+?([0-9]+)")
 
@@ -95,36 +78,6 @@ def _parse_span(value: str | None, maximum: int) -> int:
     return min(span, maximum)
 
 
-def _collect_visible_text(element: html.HtmlElement, parts: list[str]) -> None:
-    """Append the text of an element and its descendants, separating block elements by spaces."""
-    if element.text:
-        parts.append(element.text)
-    for child in element:
-        # Comments and processing instructions have a non-string tag; only their tail is rendered
-        if isinstance(child.tag, str) and child.tag not in _HIDDEN_TAGS:
-            is_block = child.tag in _BLOCK_TAGS
-            if is_block:
-                parts.append(" ")
-            _collect_visible_text(child, parts)
-            if is_block:
-                parts.append(" ")
-        if child.tail:
-            parts.append(child.tail)
-
-
-def _get_cell_text(cell: html.HtmlElement) -> str:
-    """Get the text of a cell as it would be displayed, with whitespace collapsed.
-
-    Inline elements (e.g. <b>, <sub>) join their text to adjacent text, while <br> and block
-    elements (e.g. <p>, <li>) separate it, so cells that look the same get the same text.
-    Invisible characters are removed.
-    """
-    parts: list[str] = []
-    _collect_visible_text(cell, parts)
-    text = "".join(parts).translate(_INVISIBLE_CHARACTERS)
-    return " ".join(text.split())
-
-
 def html_to_cell_list(table_html: str) -> list[TableCell] | None:
     """Parse an HTML representation of a table into a list of cells, tolerant of common HTML quirks.
 
@@ -137,7 +90,8 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
         or None if the HTML contains no table (including empty input).
     """
     try:
-        doc = html.fromstring(table_html)
+        # Comments are removed so that text on either side of one joins, as in xml.etree
+        doc = html.fromstring(table_html, parser=html.HTMLParser(remove_comments=True))
     except etree.ParserError:
         return None
 
@@ -186,7 +140,7 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
                 row_nums=row_nums,
                 column_nums=column_nums,
                 is_column_header=current.tag == "th" or in_header,
-                cell_text=_get_cell_text(current),
+                cell_text=" ".join(current.itertext()),
             )
             table_cells.append(cell)
 
