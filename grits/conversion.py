@@ -66,8 +66,8 @@ _BLOCK_TAGS = frozenset(
 # Elements whose text is not rendered
 _HIDDEN_TAGS = frozenset({"script", "style", "template"})
 
-# Characters that render as nothing: soft hyphen, zero-width space, word joiner, byte order mark
-_INVISIBLE_CHARACTERS = str.maketrans("", "", "\u00ad\u200b\u2060\ufeff")
+# Runs of ASCII whitespace, as defined by the HTML standard, which a browser collapses
+_ASCII_WHITESPACE = re.compile(r"[\t\n\f\r ]+")
 
 
 # The HTML standard's rules for parsing integers, which allow only ASCII whitespace and digits
@@ -116,13 +116,14 @@ def _get_cell_text(cell: html.HtmlElement) -> str:
     """Get the text of a cell as it would be displayed, with whitespace collapsed.
 
     Inline elements (e.g. <b>, <sub>) join their text to adjacent text, while <br> and block
-    elements (e.g. <p>, <li>) separate it, so cells that look the same get the same text.
-    Invisible characters are removed.
+    elements (e.g. <p>, <li>) separate it. Non-breaking spaces become spaces, and runs of ASCII
+    whitespace are collapsed to a single space. Other characters, including other Unicode spaces
+    (e.g. thin spaces) and invisible characters (e.g. soft hyphens), are kept as is.
     """
     parts: list[str] = []
     _collect_visible_text(cell, parts)
-    text = "".join(parts).translate(_INVISIBLE_CHARACTERS)
-    return " ".join(text.split())
+    text = "".join(parts).replace("\u00a0", " ")
+    return _ASCII_WHITESPACE.sub(" ", text).strip()
 
 
 def html_to_cell_list(table_html: str) -> list[TableCell] | None:
