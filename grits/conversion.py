@@ -122,6 +122,9 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
 
     occupied_columns_by_row: defaultdict[int, set[int]] = defaultdict(set)
     current_row = -1
+    # Cells outside a tr are placed in an implied row, one per run of cells with the same parent,
+    # as a browser would display them
+    implied_row_parent = None
 
     stack: list[tuple] = [(table, False)]
     while stack:
@@ -129,8 +132,13 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
 
         if current.tag == "tr":
             current_row += 1
+            implied_row_parent = None
 
         if current.tag in ("td", "th"):
+            parent = current.getparent()
+            if parent.tag != "tr" and parent is not implied_row_parent:
+                current_row += 1
+                implied_row_parent = parent
             colspan = int(current.attrib.get("colspan", 1))
             rowspan = int(current.attrib.get("rowspan", 1))
             row_nums = list(range(current_row, current_row + rowspan))

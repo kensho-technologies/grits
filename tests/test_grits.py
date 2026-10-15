@@ -311,6 +311,26 @@ class TestHtmlToCellList:
     def test_invalid_html_returns_none(self):
         assert html_to_cell_list("not a valid table") is None
 
+    @pytest.mark.parametrize(
+        "table_html,expected_rows",
+        [
+            ("<table><td>A</td><td>B</td></table>", [[0], [0]]),
+            ("<table><td>A</td><tr><td>B</td></tr></table>", [[0], [1]]),
+            ("<table><tr><td>A</td></tr><td>B</td><td>C</td></table>", [[0], [1], [1]]),
+            ("<table><thead><th>H</th></thead><tbody><td>A</td></tbody></table>", [[0], [1]]),
+        ],
+        ids=["no_tr", "cell_before_tr", "cells_after_tr", "cells_in_sections"],
+    )
+    def test_cells_outside_tr_get_implied_row(self, table_html, expected_rows):
+        cell_list = html_to_cell_list(table_html)
+        assert cell_list is not None
+        assert [cell.row_nums for cell in cell_list] == expected_rows
+
+    def test_table_without_tr_converts_to_grids(self):
+        grids = html_to_grids("<table><td>A</td><td>B</td></table>")
+        assert grids is not None
+        assert grids["con"] == [["A", "B"]]
+
     def test_html_with_entities(self):
         table_html = "<table><tr><td>Hello&nbsp;World</td><td>B</td></tr></table>"
         cell_list = html_to_cell_list(table_html)
