@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0 (Unreleased)
+## 0.6.1 (Unreleased)
 
 Improve HTML parsing robustness and fix a division-by-zero bug.
 
