@@ -128,11 +128,12 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
     """Parse an HTML representation of a table into a list of cells, tolerant of common HTML quirks.
 
     Args:
-        table_html: HTML string of the table to parse.
+        table_html: HTML string of the table to parse. If it contains more than one table, only
+            the first is used.
 
     Returns:
         A list of TableCell objects with row_nums, column_nums, is_column_header, and cell_text,
-        or None if the HTML cannot be parsed.
+        or None if the HTML contains no table (including empty input).
     """
     try:
         doc = html.fromstring(table_html)
@@ -302,7 +303,7 @@ def html_to_grids(table_html: str) -> dict[str, list[list[Any]]] | None:
 
     Returns:
         A dict with keys "con" and "top" mapping to their respective grids,
-        or None if the HTML cannot be parsed.
+        or None if the HTML contains no table (including empty input).
     """
     cell_list = html_to_cell_list(table_html)
     if cell_list is None:
