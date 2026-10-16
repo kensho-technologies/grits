@@ -308,8 +308,129 @@ class TestHtmlToCellList:
         assert cell_list[0].is_column_header is True
         assert cell_list[1].is_column_header is False
 
-    def test_invalid_html_returns_none(self):
-        assert html_to_cell_list("not valid xml at all <<<") is None
+    @pytest.mark.parametrize("table_html", ["not valid xml at all <<<", "not a valid table"])
+    def test_invalid_html_returns_none(self, table_html):
+        assert html_to_cell_list(table_html) is None
+
+    @pytest.mark.parametrize(
+        "table_html,expected_rows",
+        [
+            ("<table><td>A</td><td>B</td></table>", [[0], [0]]),
+            ("<table><td>A</td><tr><td>B</td></tr></table>", [[0], [1]]),
+            ("<table><tr><td>A</td></tr><td>B</td><td>C</td></table>", [[0], [1], [1]]),
+            ("<table><thead><th>H</th></thead><tbody><td>A</td></tbody></table>", [[0], [1]]),
+        ],
+        ids=["no_tr", "cell_before_tr", "cells_after_tr", "cells_in_sections"],
+    )
+    def test_cells_outside_tr_get_implied_row(self, table_html, expected_rows):
+        cell_list = html_to_cell_list(table_html)
+        assert cell_list is not None
+        assert [cell.row_nums for cell in cell_list] == expected_rows
+
+    @pytest.mark.parametrize(
+        "span_attribute,expected_columns",
+        [
+            ('colspan="2"', [0, 1]),
+            ('colspan=" 2 "', [0, 1]),
+            ('colspan="+2"', [0, 1]),
+            ('colspan="2px"', [0, 1]),
+            ('colspan="2.9"', [0, 1]),
+            ('colspan=""', [0]),
+            ('colspan="abc"', [0]),
+            ('colspan="0"', [0]),
+            ('colspan="-1"', [0]),
+            ('colspan="5000"', list(range(1000))),
+            ('colspan="\u0662"', [0]),
+            ('colspan="\uff12"', [0]),
+            ('colspan="\u00a02"', [0]),
+            ('colspan="\v2"', [0]),
+        ],
+        ids=[
+            "valid",
+            "whitespace",
+            "plus_sign",
+            "trailing_text",
+            "decimal",
+            "empty",
+            "non_numeric",
+            "zero",
+            "negative",
+            "above_maximum",
+            "arabic_indic_digit",
+            "fullwidth_digit",
+            "leading_nbsp",
+            "leading_vertical_tab",
+        ],
+    )
+    def test_colspan_parsed_like_a_browser(self, span_attribute, expected_columns):
+        cell_list = html_to_cell_list(f"<table><tr><td {span_attribute}>A</td></tr></table>")
+        assert cell_list is not None
+        assert cell_list[0].column_nums == expected_columns
+
+    @pytest.mark.parametrize(
+        "span_attribute,expected_rows",
+        [
+            ('rowspan="2"', [0, 1]),
+            ('rowspan="x"', [0]),
+            ('rowspan="0"', [0]),
+            ('rowspan="-1"', [0]),
+        ],
+        ids=["valid", "non_numeric", "zero", "negative"],
+    )
+    def test_rowspan_parsed_like_a_browser(self, span_attribute, expected_rows):
+        cell_list = html_to_cell_list(
+            f"<table><tr><td {span_attribute}>A</td></tr><tr><td>B</td></tr></table>"
+        )
+        assert cell_list is not None
+        assert cell_list[0].row_nums == expected_rows
+
+    def test_table_without_tr_converts_to_grids(self):
+        grids = html_to_grids("<table><td>A</td><td>B</td></table>")
+        assert grids is not None
+        assert grids["con"] == [["A", "B"]]
+
+    def test_html_with_entities(self):
+        table_html = "<table><tr><td>Hello&nbsp;World</td><td>B</td></tr></table>"
+        cell_list = html_to_cell_list(table_html)
+        assert cell_list is not None
+        assert len(cell_list) == 2
+        assert cell_list[0].cell_text == "Hello\u00a0World"
+
+    def test_html_with_unclosed_br(self):
+        table_html = "<table><tr><td>Line1<br>Line2</td><td>B</td></tr></table>"
+        cell_list = html_to_cell_list(table_html)
+        assert cell_list is not None
+        assert len(cell_list) == 2
+        assert cell_list[0].cell_text == "Line1 Line2"
+
+    @pytest.mark.parametrize(
+        "cell_html,expected_text",
+        [
+            ("Total<br/>2020", "Total 2020"),
+            ("H<sub>2</sub>O", "H 2 O"),
+            ("<b>Net</b> <i>income</i>", "Net   income"),
+            ("A&nbsp;B", "A\u00a0B"),
+            ("n\u2009=\u200923", "n\u2009=\u200923"),
+            ("co\u00adoperate", "co\u00adoperate"),
+            ("A<!-- comment -->B", "AB"),
+            ("", ""),
+        ],
+        ids=[
+            "xhtml_br",
+            "subscript",
+            "inline_with_space",
+            "nbsp",
+            "thin_space",
+            "soft_hyphen",
+            "comment",
+            "empty",
+        ],
+    )
+    def test_cell_text_joins_text_fragments_with_spaces(self, cell_html, expected_text):
+        # Matches the cell text produced by 0.6.0 for well-formed input
+        cell_list = html_to_cell_list(f"<table><tr><td>{cell_html}</td></tr></table>")
+        assert cell_list is not None
+        assert cell_list[0].cell_text == expected_text
 
 
 class TestHtmlToGrids:
@@ -329,8 +450,9 @@ class TestHtmlToGrids:
         assert result["con"] == cell_list_to_grid_con(cell_list)
         assert result["top"] == cell_list_to_grid_top(cell_list)
 
-    def test_invalid_html_returns_none(self):
-        assert html_to_grids("not valid xml at all <<<") is None
+    @pytest.mark.parametrize("table_html", ["not valid xml at all <<<", "not a valid table"])
+    def test_invalid_html_returns_none(self, table_html):
+        assert html_to_grids(table_html) is None
 
 
 class TestIou:
@@ -526,6 +648,36 @@ class TestGritsMetricEvaluator:
         assert results["mean_grits_con_per_sample"] == 1.0
         assert results["mean_grits_con_precision_per_sample"] == 1.0
         assert results["mean_grits_con_recall_per_sample"] == 1.0
+
+    def test_compute_grits_with_no_true_tables(self):
+        evaluator = _GritsMetricEvaluator(metric="con")
+        evaluator.eval_grids([], [[["A", "B"]]])
+        results = evaluator.compute_grits()
+        assert results["grits_con_precision"] == 0.0
+        assert results["grits_con_recall"] == 1.0
+        assert results["grits_con_cell_exact_match_accuracy"] == 1.0
+        assert results["grits_con_grid_exact_match_accuracy"] == 1.0
+
+    def test_compute_mean_grits_per_sample_with_no_true_tables(self):
+        evaluator = _GritsMetricEvaluator(metric="con")
+        evaluator.eval_grids([], [[["A", "B"]]])
+        results = evaluator.compute_mean_grits_per_sample()
+        assert results["mean_grits_con_precision_per_sample"] == 0.0
+        assert results["mean_grits_con_recall_per_sample"] == 1.0
+        assert results["mean_grits_con_cell_exact_match_accuracy_per_sample"] == 1.0
+        assert results["mean_grits_con_grid_exact_match_accuracy_per_sample"] == 1.0
+
+    def test_samples_with_no_true_tables_are_skipped_in_accuracy_averages(self):
+        evaluator = _GritsMetricEvaluator(metric="con")
+        # One of two cells matches exactly, so the table does not
+        evaluator.eval_grids([[["A", "B"]]], [[["A", "X"]]])
+        evaluator.eval_grids([], [[["A", "B"]]])
+        results = evaluator.compute_mean_grits_per_sample()
+        assert results["mean_grits_con_cell_exact_match_accuracy_per_sample"] == 0.5
+        assert results["mean_grits_con_grid_exact_match_accuracy_per_sample"] == 0.0
+        results = evaluator.compute_grits()
+        assert results["grits_con_cell_exact_match_accuracy"] == 0.5
+        assert results["grits_con_grid_exact_match_accuracy"] == 0.0
 
     def test_compute_mean_grits_per_sample_precision_recall_order(self):
         evaluator = _GritsMetricEvaluator(metric="con")

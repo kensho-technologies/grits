@@ -1,8 +1,10 @@
 # Copyright 2025-present Kensho Technologies, LLC.
 from collections import defaultdict
 import dataclasses
+import re
 from typing import Any
-import xml.etree.ElementTree as ET
+
+from lxml import etree, html
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -51,44 +53,78 @@ class TableCell:
         return d
 
 
+# The HTML standard's rules for parsing integers, which allow only ASCII whitespace and digits
+_LEADING_INTEGER = re.compile(r"[\t\n\f\r ]*\+?([0-9]+)")
+
+# Maximum spans allowed by the HTML standard
+_MAX_COLSPAN = 1000
+_MAX_ROWSPAN = 65534
+
+
+def _parse_span(value: str | None, maximum: int) -> int:
+    """Parse a colspan or rowspan attribute the way a browser does.
+
+    Uses the leading integer (e.g. "2px" is 2). Missing, invalid, zero, or negative values are 1,
+    and values above the maximum are clamped to it.
+    """
+    if value is None:
+        return 1
+    match = _LEADING_INTEGER.match(value)
+    if match is None:
+        return 1
+    span = int(match.group(1))
+    if span == 0:
+        return 1
+    return min(span, maximum)
+
+
 def html_to_cell_list(table_html: str) -> list[TableCell] | None:
-    """Parse an HTML representation of a table into a list of cells.
+    """Parse an HTML representation of a table into a list of cells, tolerant of common HTML quirks.
+
+    HTML conversion is provided for convenience and is not part of the GriTS metric; it may change
+    between versions (see the README).
 
     Args:
-        table_html: HTML string of the table to parse.
+        table_html: HTML string of the table to parse. If it contains more than one table, only
+            the first is used.
 
     Returns:
         A list of TableCell objects with row_nums, column_nums, is_column_header, and cell_text,
-        or None if the HTML cannot be parsed.
+        or None if the HTML contains no table (including empty input).
     """
     try:
-        tree = ET.fromstring(table_html)
-    except ET.ParseError:
+        # Comments are removed so that text on either side of one joins, as in xml.etree
+        doc = html.fromstring(table_html, parser=html.HTMLParser(remove_comments=True))
+    except etree.ParserError:
+        return None
+
+    table = doc if doc.tag == "table" else doc.find(".//table")
+    if table is None:
         return None
 
     table_cells = []
 
     occupied_columns_by_row: defaultdict[int, set[int]] = defaultdict(set)
     current_row = -1
+    # Cells outside a tr are placed in an implied row, one per run of cells with the same parent,
+    # as a browser would display them
+    implied_row_parent = None
 
-    # DFS traversal of the HTML tree to extract cell (td/th) elements
-    stack = []
-    stack.append((tree, False))
-    while len(stack) > 0:
+    stack: list[tuple] = [(table, False)]
+    while stack:
         current, in_header = stack.pop()
 
         if current.tag == "tr":
             current_row += 1
+            implied_row_parent = None
 
-        if current.tag == "td" or current.tag == "th":
-            if "colspan" in current.attrib:
-                colspan = int(current.attrib["colspan"])
-            else:
-                colspan = 1
-            if "rowspan" in current.attrib:
-                rowspan = int(current.attrib["rowspan"])
-            else:
-                rowspan = 1
+        if current.tag in ("td", "th"):
+            parent = current.getparent()
+            if parent.tag != "tr" and parent is not implied_row_parent:
+                current_row += 1
+                implied_row_parent = parent
+            colspan = _parse_span(current.attrib.get("colspan"), _MAX_COLSPAN)
+            rowspan = _parse_span(current.attrib.get("rowspan"), _MAX_ROWSPAN)
             row_nums = list(range(current_row, current_row + rowspan))
             try:
                 max_occupied_column = max(occupied_columns_by_row[current_row])
@@ -111,9 +147,8 @@ def html_to_cell_list(table_html: str) -> list[TableCell] | None:
             )
             table_cells.append(cell)
 
-        children = list(current)
-        for child in children[::-1]:
-            stack.append((child, in_header or current.tag == "th" or current.tag == "thead"))
+        for child in reversed(list(current)):
+            stack.append((child, in_header or current.tag in ("th", "thead")))
 
     return table_cells
 
@@ -221,12 +256,15 @@ def html_to_grids(table_html: str) -> dict[str, list[list[Any]]] | None:
     This is a convenience function that chains html_to_cell_list with
     cell_list_to_grid_con and cell_list_to_grid_top.
 
+    HTML conversion is provided for convenience and is not part of the GriTS metric; it may change
+    between versions (see the README).
+
     Args:
         table_html: HTML string of the table to convert.
 
     Returns:
         A dict with keys "con" and "top" mapping to their respective grids,
-        or None if the HTML cannot be parsed.
+        or None if the HTML contains no table (including empty input).
     """
     cell_list = html_to_cell_list(table_html)
     if cell_list is None:

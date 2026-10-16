@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.6.0 (Unreleased)
+## 0.6.1
+
+Improve HTML parsing robustness and fix a division-by-zero bug.
+
+### Added
+- `lxml` as a required dependency for robust HTML parsing.
+
+### Changed
+- Switched HTML parsing from `xml.etree.ElementTree` to `lxml.html` for tolerance of common HTML quirks (entities like `&nbsp;`, unclosed tags like `<br>`).
+
+### Fixed
+- `compute_grits` and `compute_mean_grits_per_sample` no longer raise `ZeroDivisionError` for samples with no ground truth tables. If no sample has ground truth tables, exact match accuracies are 1.0, following the same convention as recall.
+- HTML tables with cells outside a `<tr>` no longer crash grid conversion; such cells are placed in an implied row, as a browser displays them.
+- Invalid `colspan` and `rowspan` values (e.g. `"2px"`, `""`, `"0"`) are parsed the way a browser does, instead of crashing or dropping the cell.
+
+## 0.6.0
 
 Introduce `TableCell` dataclass, reorganize grid conversion code, and add HTML-to-grid convenience functions.
 
