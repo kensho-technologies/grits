@@ -978,7 +978,9 @@ class GritsEvaluator:
         A predicted table that cannot be converted (no table is found, or the HTML cannot be
         parsed) is evaluated as an empty table and counted in compute_counts() as
         num_invalid_pred_tables. Because GriTS precision and recall are computed over cells, an
-        empty predicted table does not change them; it only adds to the number of predicted tables.
+        empty predicted table does not change the GriTS scores, precision, or recall; it only adds
+        to the number of predicted tables. It can, however, count as an exact match of a ground
+        truth table with no cells.
 
         HTML tables do not contain bounding box information, so the 'loc' metric
         cannot be evaluated with this method.
