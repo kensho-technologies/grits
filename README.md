@@ -143,6 +143,8 @@ print(f"GriTS_Top: {results['grits_top']:.4f}") # GriTS_Top: 0.8462
 print(f"GriTS_Con: {results['grits_con']:.4f}") # GriTS_Con: 0.6923
 ```
 
+A predicted table that cannot be converted (no table is found, or the HTML cannot be parsed) is evaluated as an empty table, and counted as `num_invalid_pred_tables` in `evaluator.compute_counts()`. Because GriTS precision and recall are computed over cells, an empty predicted table does not change them; it only adds to the number of predicted tables. Ground truth tables that cannot be converted raise an error.
+
 ### New aggregate metrics versus old aggregate metrics
 
 To compute the new aggregate metrics for TE and TSR, use `evaluator.compute_grits()` like above.

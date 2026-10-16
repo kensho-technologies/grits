@@ -903,12 +903,52 @@ class TestGritsEvaluator:
         assert results["grits_top"] == 1.0
         assert results["grits_con"] == 0.5
 
-    def test_eval_htmls_invalid_html_raises(self):
+    def test_eval_htmls_invalid_true_html_raises(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
         with pytest.raises(ValueError, match="Failed to parse true_html"):
             evaluator.eval_htmls(["not valid html<><<"], ["<table><tr><td>A</td></tr></table>"])
-        with pytest.raises(ValueError, match="Failed to parse pred_html"):
-            evaluator.eval_htmls(["<table><tr><td>A</td></tr></table>"], ["not valid html<><<"])
+        assert evaluator.compute_counts()["num_samples"] == 0
+
+    @pytest.mark.parametrize(
+        "pred_html",
+        [
+            "not valid html<><<",
+            "",
+            '<?xml version="1.0" encoding="utf-8"?><table><tr><td>A</td></tr></table>',
+        ],
+        ids=["no_table", "empty", "xml_declaration_with_encoding"],
+    )
+    def test_eval_htmls_invalid_pred_html_is_empty_table(self, pred_html):
+        true_html = "<table><tr><td>A</td><td>B</td></tr></table>"
+        evaluator = GritsEvaluator(metrics=["con", "top"])
+        evaluator.eval_htmls([true_html], [pred_html])
+        counts = evaluator.compute_counts()
+        assert counts["num_pred_tables"] == 1
+        assert counts["num_pred_cells"] == 0
+        assert counts["num_invalid_pred_tables"] == 1
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 0.0
+        assert results["grits_con_recall"] == 0.0
+
+    def test_eval_htmls_invalid_pred_html_scores_like_no_prediction(self):
+        true_html = "<table><tr><td>A</td><td>B</td></tr></table>"
+        pred_html = "<table><tr><td>A</td><td>X</td></tr></table>"
+        with_invalid = GritsEvaluator(metrics=["con", "top"])
+        with_invalid.eval_htmls([true_html], [pred_html, "not a table"])
+        without_invalid = GritsEvaluator(metrics=["con", "top"])
+        without_invalid.eval_htmls([true_html], [pred_html])
+        assert with_invalid.compute_grits() == without_invalid.compute_grits()
+        assert with_invalid.compute_counts()["num_pred_tables"] == 2
+        assert without_invalid.compute_counts()["num_pred_tables"] == 1
+
+    def test_compute_counts_num_invalid_pred_tables(self):
+        evaluator = GritsEvaluator(metrics=["con"])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 0
+        evaluator.eval_grids([[["A"]]], [[["A"]]])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 0
+        evaluator.eval_htmls([], ["not a table", "<p>x</p>"])
+        evaluator.eval_htmls([], ["not a table"])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 3
 
     def test_eval_htmls_list_perfect_score(self):
         html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
@@ -936,11 +976,8 @@ class TestGritsEvaluator:
                 ["<table><tr><td>A</td></tr></table>", "not valid<<>"],
                 ["<table><tr><td>A</td></tr></table>"],
             )
-        with pytest.raises(ValueError, match="Failed to parse pred_html"):
-            evaluator.eval_htmls(
-                ["<table><tr><td>A</td></tr></table>"],
-                ["not valid<<>"],
-            )
+        evaluator.eval_htmls(["<table><tr><td>A</td></tr></table>"], ["not valid<<>"])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 1
 
     def test_eval_htmls_loc_metric_raises(self):
         evaluator = GritsEvaluator(metrics=["con", "loc"])

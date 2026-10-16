@@ -917,6 +917,7 @@ class GritsEvaluator:
         if metrics is None:
             metrics = ["con", "top"]
         self._evaluators = {metric: _GritsMetricEvaluator(metric=metric) for metric in metrics}
+        self._num_invalid_pred_tables = 0
 
     @property
     def metrics(self) -> list[str]:
@@ -970,6 +971,11 @@ class GritsEvaluator:
         HTML conversion is provided for convenience and is not part of the GriTS metric; it may
         change between versions (see the README).
 
+        A predicted table that cannot be converted (no table is found, or the HTML cannot be
+        parsed) is evaluated as an empty table and counted in compute_counts() as
+        num_invalid_pred_tables. Because GriTS precision and recall are computed over cells, an
+        empty predicted table does not change them; it only adds to the number of predicted tables.
+
         HTML tables do not contain bounding box information, so the 'loc' metric
         cannot be evaluated with this method.
 
@@ -979,8 +985,8 @@ class GritsEvaluator:
 
         Raises:
             TypeError: If a bare string is passed instead of a list of strings.
-            ValueError: If any HTML string cannot be parsed, or if the evaluator
-                is tracking the 'loc' metric.
+            ValueError: If a ground truth HTML string cannot be converted to a table, or if the
+                evaluator is tracking the 'loc' metric.
         """
         if isinstance(true_htmls, str) or isinstance(pred_htmls, str):  # type: ignore[unreachable]
             raise TypeError("eval_htmls expects lists of HTML strings, not a single string.")
@@ -999,13 +1005,21 @@ class GritsEvaluator:
             true_cell_lists.append(cell_list)
 
         pred_cell_lists = []
+        num_invalid_pred_tables = 0
         for pred_html in pred_htmls:
-            cell_list = html_to_cell_list(pred_html)
+            try:
+                cell_list = html_to_cell_list(pred_html)
+            except ValueError:
+                # Raised by lxml for input it cannot parse, such as an XML declaration with an encoding
+                cell_list = None
             if cell_list is None:
-                raise ValueError(f"Failed to parse pred_html: {pred_html!r}")
+                # A predicted table that cannot be converted is evaluated as an empty table
+                num_invalid_pred_tables += 1
+                cell_list = []
             pred_cell_lists.append(cell_list)
 
         self.eval_table_cell_lists(true_cell_lists, pred_cell_lists)
+        self._num_invalid_pred_tables += num_invalid_pred_tables
 
     _GRID_CONVERSION_FUNCTIONS: dict[str, Callable[[list[TableCell]], list[list[Any]]]] = {
         "con": cell_list_to_grid_con,
@@ -1058,23 +1072,28 @@ class GritsEvaluator:
         """Compute the counts of samples, tables, and cells.
 
         Returns:
-            Dict with keys num_samples, num_true_tables, num_pred_tables,
-            num_true_cells, and num_pred_cells.
+            Dict with keys num_samples, num_true_tables, num_pred_tables, num_true_cells,
+            num_pred_cells, and num_invalid_pred_tables (predicted tables passed to eval_htmls
+            that could not be converted and were evaluated as empty tables; they are included
+            in num_pred_tables).
 
         Raises:
             ValueError: If evaluated metrics have different numbers of samples.
         """
         self._check_sample_counts()
-        for ev in self._evaluators.values():
-            if len(ev.true_positive_scores) > 0:
-                return ev.compute_counts()
-        return {
+        counts = {
             "num_samples": 0,
             "num_true_tables": 0,
             "num_pred_tables": 0,
             "num_true_cells": 0,
             "num_pred_cells": 0,
         }
+        for ev in self._evaluators.values():
+            if len(ev.true_positive_scores) > 0:
+                counts = ev.compute_counts()
+                break
+        counts["num_invalid_pred_tables"] = self._num_invalid_pred_tables
+        return counts
 
     def compute_grits(self) -> dict[str, float]:
         """Compute micro GriTS scores for each metric.
