@@ -308,8 +308,9 @@ class TestHtmlToCellList:
         assert cell_list[0].is_column_header is True
         assert cell_list[1].is_column_header is False
 
-    def test_invalid_html_returns_none(self):
-        assert html_to_cell_list("not a valid table") is None
+    @pytest.mark.parametrize("table_html", ["not valid xml at all <<<", "not a valid table"])
+    def test_invalid_html_returns_none(self, table_html):
+        assert html_to_cell_list(table_html) is None
 
     @pytest.mark.parametrize(
         "table_html,expected_rows",
@@ -449,8 +450,9 @@ class TestHtmlToGrids:
         assert result["con"] == cell_list_to_grid_con(cell_list)
         assert result["top"] == cell_list_to_grid_top(cell_list)
 
-    def test_invalid_html_returns_none(self):
-        assert html_to_grids("not a valid table") is None
+    @pytest.mark.parametrize("table_html", ["not valid xml at all <<<", "not a valid table"])
+    def test_invalid_html_returns_none(self, table_html):
+        assert html_to_grids(table_html) is None
 
 
 class TestIou:
