@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+Extract cell text from HTML as it would be displayed.
+
+### Changed
+- Cell text extracted from HTML now matches the displayed text: `<br>` and block elements (e.g. `<p>`, `<li>`) separate text with a space, inline elements (e.g. `<b>`, `<sub>`) don't, non-breaking spaces become spaces, and runs of ASCII whitespace are collapsed; other characters, including other Unicode spaces and invisible characters, are kept. `html_to_cell_list`, `html_to_grids`, and `GritsEvaluator.eval_htmls` can therefore produce different cell text than earlier versions for the same HTML (e.g. `H<sub>2</sub>O` was `H 2 O` and is now `H2O`). The GriTS metrics themselves are unchanged.
+
 ## 0.6.1
 
 Improve HTML parsing robustness and fix a division-by-zero bug.
