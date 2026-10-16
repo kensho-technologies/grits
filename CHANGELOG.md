@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+Add the TEDS and TEDS-Struct metrics.
+
+### Added
+- `teds` and `teds_struct` functions reproducing the reference TEDS implementation from IBM's PubTabNet repository.
+- `hungarian_teds`, `hungarian_teds_struct`, `hungarian_teds_matching`, and `hungarian_teds_struct_matching` for evaluating lists of tables with Hungarian matching, returning a `HungarianTedsMatchingResult`.
+- `TedsEvaluator` for aggregating TEDS and TEDS-Struct over a collection of samples.
+- `apted` and `rapidfuzz` as required dependencies.
+- Apache-2.0 license text (`LICENSES/Apache-2.0.txt`) for the portions of the TEDS implementation derived from IBM's PubTabNet code; the package license is now `MIT AND Apache-2.0`.
+
 ## 0.6.1
 
 Improve HTML parsing robustness and fix a division-by-zero bug.
