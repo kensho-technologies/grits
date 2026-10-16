@@ -817,6 +817,9 @@ class _GritsMetricEvaluator:
         Returns:
             Dict with keys grits_METRIC, grits_METRIC_precision, grits_METRIC_recall,
             grits_METRIC_cell_exact_match_accuracy, and grits_METRIC_grid_exact_match_accuracy.
+            The exact match accuracies are the fractions of ground truth cells and tables that are
+            matched exactly, like a recall. If there are no ground truth cells or tables, they are
+            1.0, following the same convention as recall in compute_fscore.
         """
         total_true_positive_score = sum(self.true_positive_scores)
         total_num_true = sum(self.num_true_cells)
@@ -825,13 +828,14 @@ class _GritsMetricEvaluator:
             total_true_positive_score, total_num_true, total_num_positives
         )
         total_num_true_grids = sum(self.num_true_grids)
+        # Like recall, exact match accuracy is 1.0 when there are no ground truth cells or tables
         cell_exact_match_accuracy = (
-            sum(self.num_exact_cell_matches) / total_num_true if total_num_true > 0 else 0.0
+            sum(self.num_exact_cell_matches) / total_num_true if total_num_true > 0 else 1.0
         )
         grid_exact_match_accuracy = (
             sum(self.num_exact_grid_matches) / total_num_true_grids
             if total_num_true_grids > 0
-            else 0.0
+            else 1.0
         )
         m = self._metric
         return {
@@ -848,8 +852,9 @@ class _GritsMetricEvaluator:
         Returns:
             Dict with keys mean_grits_METRIC_per_sample, mean_grits_METRIC_precision_per_sample,
             mean_grits_METRIC_recall_per_sample, mean_grits_METRIC_cell_exact_match_accuracy_per_sample,
-            and mean_grits_METRIC_grid_exact_match_accuracy_per_sample. The two exact match accuracies
-            are averaged only over samples with ground truth tables, and are omitted if there are none.
+            and mean_grits_METRIC_grid_exact_match_accuracy_per_sample. The exact match accuracies are
+            averaged over samples with ground truth tables; if no sample has ground truth tables, they
+            are 1.0, as in compute_grits.
         """
         f1s = []
         precisions = []
@@ -882,20 +887,22 @@ class _GritsMetricEvaluator:
             if num_true_grids > 0:
                 grid_exact_match_accuracies.append(exact_grid_matches / num_true_grids)
         m = self._metric
-        results = {
+        # Like recall, exact match accuracy is 1.0 when there are no ground truth cells or tables
+        return {
             f"mean_grits_{m}_per_sample": sum(f1s) / len(f1s),
             f"mean_grits_{m}_precision_per_sample": sum(precisions) / len(precisions),
             f"mean_grits_{m}_recall_per_sample": sum(recalls) / len(recalls),
+            f"mean_grits_{m}_cell_exact_match_accuracy_per_sample": (
+                sum(cell_exact_match_accuracies) / len(cell_exact_match_accuracies)
+                if cell_exact_match_accuracies
+                else 1.0
+            ),
+            f"mean_grits_{m}_grid_exact_match_accuracy_per_sample": (
+                sum(grid_exact_match_accuracies) / len(grid_exact_match_accuracies)
+                if grid_exact_match_accuracies
+                else 1.0
+            ),
         }
-        if cell_exact_match_accuracies:
-            results[f"mean_grits_{m}_cell_exact_match_accuracy_per_sample"] = sum(
-                cell_exact_match_accuracies
-            ) / len(cell_exact_match_accuracies)
-        if grid_exact_match_accuracies:
-            results[f"mean_grits_{m}_grid_exact_match_accuracy_per_sample"] = sum(
-                grid_exact_match_accuracies
-            ) / len(grid_exact_match_accuracies)
-        return results
 
 
 class GritsEvaluator:

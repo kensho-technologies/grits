@@ -653,8 +653,8 @@ class TestGritsMetricEvaluator:
         results = evaluator.compute_grits()
         assert results["grits_con_precision"] == 0.0
         assert results["grits_con_recall"] == 1.0
-        assert results["grits_con_cell_exact_match_accuracy"] == 0.0
-        assert results["grits_con_grid_exact_match_accuracy"] == 0.0
+        assert results["grits_con_cell_exact_match_accuracy"] == 1.0
+        assert results["grits_con_grid_exact_match_accuracy"] == 1.0
 
     def test_compute_mean_grits_per_sample_with_no_true_tables(self):
         evaluator = _GritsMetricEvaluator(metric="con")
@@ -662,20 +662,20 @@ class TestGritsMetricEvaluator:
         results = evaluator.compute_mean_grits_per_sample()
         assert results["mean_grits_con_precision_per_sample"] == 0.0
         assert results["mean_grits_con_recall_per_sample"] == 1.0
-        assert "mean_grits_con_cell_exact_match_accuracy_per_sample" not in results
-        assert "mean_grits_con_grid_exact_match_accuracy_per_sample" not in results
+        assert results["mean_grits_con_cell_exact_match_accuracy_per_sample"] == 1.0
+        assert results["mean_grits_con_grid_exact_match_accuracy_per_sample"] == 1.0
 
     def test_samples_with_no_true_tables_are_skipped_in_accuracy_averages(self):
         evaluator = _GritsMetricEvaluator(metric="con")
-        grid = [["A", "B"]]
-        evaluator.eval_grids([grid], [grid])
-        evaluator.eval_grids([], [grid])
+        # One of two cells matches exactly, so the table does not
+        evaluator.eval_grids([[["A", "B"]]], [[["A", "X"]]])
+        evaluator.eval_grids([], [[["A", "B"]]])
         results = evaluator.compute_mean_grits_per_sample()
-        assert results["mean_grits_con_cell_exact_match_accuracy_per_sample"] == 1.0
-        assert results["mean_grits_con_grid_exact_match_accuracy_per_sample"] == 1.0
+        assert results["mean_grits_con_cell_exact_match_accuracy_per_sample"] == 0.5
+        assert results["mean_grits_con_grid_exact_match_accuracy_per_sample"] == 0.0
         results = evaluator.compute_grits()
-        assert results["grits_con_cell_exact_match_accuracy"] == 1.0
-        assert results["grits_con_grid_exact_match_accuracy"] == 1.0
+        assert results["grits_con_cell_exact_match_accuracy"] == 0.5
+        assert results["grits_con_grid_exact_match_accuracy"] == 0.0
 
     def test_compute_mean_grits_per_sample_precision_recall_order(self):
         evaluator = _GritsMetricEvaluator(metric="con")
