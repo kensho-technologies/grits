@@ -193,6 +193,8 @@ print(grids["con"]) # [['A', 'B']]
 print(grids["top"]) # [[[0, 0, 1, 1], [0, 0, 1, 1]]]
 ```
 
+**Note:** Converting HTML to grids is provided for convenience and is not part of the GriTS metric, which is defined on grids. How HTML is converted (for example, how cell text is extracted and how malformed markup is handled) may change between versions of this package, which can change scores computed from HTML input. Methods that produce HTML should consider defining their own conversion from their output to grids (or lists of `TableCell`s), and evaluate with `GritsEvaluator.eval_grids` or `eval_table_cell_lists`. When reporting results computed with this package's HTML conversion, consider stating the package version used.
+
 ### Converting from TableCell to grids
 
 Tables in HTML format do not contain bounding box information for cells.

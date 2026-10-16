@@ -967,6 +967,9 @@ class GritsEvaluator:
     def eval_htmls(self, true_htmls: list[str], pred_htmls: list[str]) -> None:
         """Evaluate two table collections, with each table represented in HTML format.
 
+        HTML conversion is provided for convenience and is not part of the GriTS metric; it may
+        change between versions (see the README).
+
         HTML tables do not contain bounding box information, so the 'loc' metric
         cannot be evaluated with this method.
 

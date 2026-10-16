@@ -81,6 +81,9 @@ def _parse_span(value: str | None, maximum: int) -> int:
 def html_to_cell_list(table_html: str) -> list[TableCell] | None:
     """Parse an HTML representation of a table into a list of cells, tolerant of common HTML quirks.
 
+    HTML conversion is provided for convenience and is not part of the GriTS metric; it may change
+    between versions (see the README).
+
     Args:
         table_html: HTML string of the table to parse. If it contains more than one table, only
             the first is used.
@@ -252,6 +255,9 @@ def html_to_grids(table_html: str) -> dict[str, list[list[Any]]] | None:
 
     This is a convenience function that chains html_to_cell_list with
     cell_list_to_grid_con and cell_list_to_grid_top.
+
+    HTML conversion is provided for convenience and is not part of the GriTS metric; it may change
+    between versions (see the README).
 
     Args:
         table_html: HTML string of the table to convert.
