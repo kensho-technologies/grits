@@ -941,6 +941,16 @@ class TestGritsEvaluator:
         assert with_invalid.compute_counts()["num_pred_tables"] == 2
         assert without_invalid.compute_counts()["num_pred_tables"] == 1
 
+    def test_eval_htmls_only_first_table_in_a_string_is_used(self):
+        true_html = "<table><tr><td>A</td></tr></table>"
+        two_tables = (
+            "<div><table><tr><td>A</td></tr></table><table><tr><td>B</td></tr></table></div>"
+        )
+        evaluator = GritsEvaluator(metrics=["con"])
+        evaluator.eval_htmls([true_html], [two_tables])
+        assert evaluator.compute_counts()["num_pred_tables"] == 1
+        assert evaluator.compute_grits()["grits_con"] == 1.0
+
     def test_compute_counts_num_invalid_pred_tables(self):
         evaluator = GritsEvaluator(metrics=["con"])
         assert evaluator.compute_counts()["num_invalid_pred_tables"] == 0

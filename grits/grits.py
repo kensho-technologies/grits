@@ -971,6 +971,10 @@ class GritsEvaluator:
         HTML conversion is provided for convenience and is not part of the GriTS metric; it may
         change between versions (see the README).
 
+        Each HTML string should contain exactly one table. If a string contains more than one
+        table, only the first is used, so output with several tables (e.g. for a whole page)
+        should be split into one string per table before calling this method.
+
         A predicted table that cannot be converted (no table is found, or the HTML cannot be
         parsed) is evaluated as an empty table and counted in compute_counts() as
         num_invalid_pred_tables. Because GriTS precision and recall are computed over cells, an
@@ -980,8 +984,8 @@ class GritsEvaluator:
         cannot be evaluated with this method.
 
         Args:
-            true_htmls: List of HTML strings of ground truth tables.
-            pred_htmls: List of HTML strings of predicted tables.
+            true_htmls: List of HTML strings of ground truth tables, one table per string.
+            pred_htmls: List of HTML strings of predicted tables, one table per string.
 
         Raises:
             TypeError: If a bare string is passed instead of a list of strings.
