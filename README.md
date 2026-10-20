@@ -283,6 +283,58 @@ These functions return a tuple of (F1-score, precision, recall). For more detail
 
 For evaluating multiple tables on a page with optimal matching, use `hungarian_grits_con_matching`, `hungarian_grits_top_matching`, and `hungarian_grits_loc_matching`. These return a `HungarianGritsMatchingResult` dataclass with named fields such as `true_positive_score`, `matched_true_indices`, and `num_exact_grid_matches`.
 
+## TEDS
+
+This package also includes the Tree-Edit-Distance-based Similarity (TEDS) metric, proposed in [Image-based table recognition: data, model, and evaluation](https://arxiv.org/abs/1911.10683), for comparison with GriTS.
+TEDS compares two HTML tables as trees and normalizes their tree edit distance by the size of the larger table.
+TEDS-Struct is the same metric with cell content ignored.
+
+The implementation follows the [reference implementation from IBM's PubTabNet repository](https://github.com/ibm-aur-nlp/PubTabNet/blob/master/src/metric.py) and reproduces its scores exactly, so that scores are comparable with published results.
+This includes two quirks of the reference implementation:
+1. The normalizer counts inline elements inside cells (such as `<b>`, `<sup>`, and `<br>`) as nodes, although they are not part of the tree that is compared. Inline formatting therefore increases the score, including for TEDS-Struct.
+2. Only `<td>` elements are treated as cells. The text and spans of `<th>` elements are ignored.
+
+One deliberate difference: a bare `<table>...</table>` string is scored normally, whereas the reference implementation scores a table that is not wrapped in `<html>` as 0.
+
+### Computing TEDS and TEDS-Struct for two tables in HTML format
+
+```python
+from grits import teds, teds_struct
+
+true_html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>"
+pred_html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>X</td></tr></table>"
+
+print(f"TEDS:        {teds(true_html, pred_html):.4f}") # TEDS:        0.8333
+print(f"TEDS-Struct: {teds_struct(true_html, pred_html):.4f}") # TEDS-Struct: 1.0000
+```
+
+### Aggregating TEDS across a collection of samples with TedsEvaluator
+
+For lists of tables, TEDS uses the Hungarian algorithm to find the one-to-one matching between ground truth and predicted tables that maximizes the total TEDS score, with TEDS and TEDS-Struct matched separately.
+Each matched pair contributes its TEDS score and unmatched tables contribute 0.
+Precision and recall divide the total score by the number of predicted and ground truth tables, respectively.
+`hungarian_teds` and `hungarian_teds_struct` compute this for a single sample.
+
+`TedsEvaluator` aggregates TEDS over a collection of samples. Using the same `samples` as in the `GritsEvaluator` example above:
+
+```python
+from grits import TedsEvaluator
+
+evaluator = TedsEvaluator(metrics=["teds", "teds_struct"])
+
+for true_htmls, pred_htmls in samples:
+    evaluator.eval_htmls(true_htmls, pred_htmls)
+
+results = evaluator.compute_teds()
+
+print(f"TEDS:        {results['teds']:.4f}") # TEDS:        0.4667
+print(f"TEDS-Struct: {results['teds_struct']:.4f}") # TEDS-Struct: 0.6000
+```
+
+As with GriTS, `compute_teds()` sums the matched scores and table counts over all samples before computing the F-score, and `compute_mean_teds_per_sample()` averages the per-sample scores instead.
+
+Tree edit distance grows quickly with table size, and every ground truth table is compared with every predicted table in a sample, so evaluating pages with many large tables can take a while.
+
 ## Citing
 If you use this package or GriTS in your work, here is how to cite us:
 ```
@@ -315,5 +367,7 @@ If you use this package or GriTS in your work, here is how to cite us:
 ## License
 
 Licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+Portions of `grits/_teds.py` are derived from the TEDS implementation in [IBM's PubTabNet repository](https://github.com/ibm-aur-nlp/PubTabNet), Copyright 2020 IBM, and are licensed under the Apache License, Version 2.0. See [LICENSES/Apache-2.0.txt](LICENSES/Apache-2.0.txt).
 
 Copyright 2025-present Kensho Technologies, LLC.

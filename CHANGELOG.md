@@ -2,9 +2,14 @@
 
 ## 0.7.0
 
-Make `eval_htmls` evaluate predicted HTML tables that cannot be converted as empty tables, with a warning, instead of failing.
+Add the TEDS and TEDS-Struct metrics, and make `eval_htmls` evaluate predicted HTML tables that cannot be converted as empty tables, with a warning, instead of failing.
 
 ### Added
+- `teds` and `teds_struct` functions reproducing the reference TEDS implementation from IBM's PubTabNet repository.
+- `hungarian_teds`, `hungarian_teds_struct`, `hungarian_teds_matching`, and `hungarian_teds_struct_matching` for evaluating lists of tables with Hungarian matching, returning a `HungarianTedsMatchingResult`.
+- `TedsEvaluator` for aggregating TEDS and TEDS-Struct over a collection of samples.
+- `apted` and `rapidfuzz` as required dependencies.
+- Apache-2.0 license text (`LICENSES/Apache-2.0.txt`) for the portions of the TEDS implementation derived from IBM's PubTabNet code; the package license is now `MIT AND Apache-2.0`.
 - `num_invalid_pred_tables` in `GritsEvaluator.compute_counts()`: the number of predicted tables passed to `eval_htmls` that could not be converted and were evaluated as empty tables.
 
 ### Changed
