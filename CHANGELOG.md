@@ -2,13 +2,13 @@
 
 ## 0.7.0
 
-Evaluate predicted HTML tables that cannot be converted as empty tables.
+Make `eval_htmls` evaluate predicted HTML tables that cannot be converted as empty tables, with a warning, instead of failing.
 
 ### Added
 - `num_invalid_pred_tables` in `GritsEvaluator.compute_counts()`: the number of predicted tables passed to `eval_htmls` that could not be converted and were evaluated as empty tables.
 
 ### Changed
-- `GritsEvaluator.eval_htmls` evaluates a predicted table that cannot be converted to a table (no table is found, or the HTML cannot be parsed) as an empty table, instead of raising `ValueError`, and issues a `UserWarning`. Ground truth tables that cannot be converted still raise `ValueError`.
+- `GritsEvaluator.eval_htmls` no longer raises `ValueError` when a predicted table cannot be converted (no table is found, or the HTML cannot be parsed). Instead, it evaluates the prediction as an empty table, counts it in `num_pred_tables` and `num_invalid_pred_tables`, and issues a `UserWarning`. GriTS scores, precision, and recall are the same as if the unconvertible predictions had been left out, which previously callers had to do themselves, e.g. by converting predictions with `html_to_grids` and dropping those that fail. Ground truth tables that cannot be converted still raise `ValueError`.
 
 ## 0.6.1
 
