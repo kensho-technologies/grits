@@ -1,4 +1,6 @@
 # Copyright 2025-present Kensho Technologies, LLC.
+import warnings
+
 import numpy as np
 import pytest
 
@@ -853,6 +855,13 @@ class TestGritsMetricEvaluator:
             _GritsMetricEvaluator(metric="invalid")
 
 
+_HTML_AB = "<table><tr><td>A</td><td>B</td></tr></table>"
+_HTML_AX = "<table><tr><td>A</td><td>X</td></tr></table>"
+_HTML_Q = "<table><tr><td>Q</td></tr></table>"
+_NOT_A_TABLE = "not a table"
+_INVALID_PRED_WARNING = "could not be converted and were evaluated as empty tables"
+
+
 class TestGritsEvaluator:
     def test_default_metrics(self):
         evaluator = GritsEvaluator()
@@ -903,12 +912,133 @@ class TestGritsEvaluator:
         assert results["grits_top"] == 1.0
         assert results["grits_con"] == 0.5
 
-    def test_eval_htmls_invalid_html_raises(self):
+    def test_eval_htmls_invalid_true_html_raises(self):
         evaluator = GritsEvaluator(metrics=["con", "top"])
         with pytest.raises(ValueError, match="Failed to parse true_html"):
             evaluator.eval_htmls(["not valid html<><<"], ["<table><tr><td>A</td></tr></table>"])
-        with pytest.raises(ValueError, match="Failed to parse pred_html"):
-            evaluator.eval_htmls(["<table><tr><td>A</td></tr></table>"], ["not valid html<><<"])
+        assert evaluator.compute_counts()["num_samples"] == 0
+
+    @pytest.mark.parametrize(
+        "pred_html",
+        [
+            "not valid html<><<",
+            "",
+            '<?xml version="1.0" encoding="utf-8"?><table><tr><td>A</td></tr></table>',
+        ],
+        ids=["no_table", "empty", "xml_declaration_with_encoding"],
+    )
+    def test_eval_htmls_invalid_pred_html_is_empty_table(self, pred_html):
+        true_html = "<table><tr><td>A</td><td>B</td></tr></table>"
+        evaluator = GritsEvaluator(metrics=["con", "top"])
+        with pytest.warns(UserWarning, match=_INVALID_PRED_WARNING):
+            evaluator.eval_htmls([true_html], [pred_html])
+        counts = evaluator.compute_counts()
+        assert counts["num_pred_tables"] == 1
+        assert counts["num_pred_cells"] == 0
+        assert counts["num_invalid_pred_tables"] == 1
+        results = evaluator.compute_grits()
+        assert results["grits_con"] == 0.0
+        assert results["grits_con_recall"] == 0.0
+
+    @pytest.mark.parametrize(
+        "samples",
+        [
+            [([_HTML_AB], [_HTML_AX, _NOT_A_TABLE])],
+            [([_HTML_AB], [_NOT_A_TABLE])],
+            [([], [_NOT_A_TABLE])],
+            [([_HTML_AB], [_HTML_Q, _NOT_A_TABLE])],
+            [
+                ([_HTML_AB], [_HTML_AX, _NOT_A_TABLE]),
+                ([_HTML_AB, _HTML_AX], [_NOT_A_TABLE, _HTML_AB]),
+                ([], [_NOT_A_TABLE]),
+            ],
+        ],
+        ids=[
+            "valid_and_invalid",
+            "invalid_only",
+            "no_true_tables",
+            "wrong_and_invalid",
+            "several_samples",
+        ],
+    )
+    def test_eval_htmls_invalid_pred_html_scores_like_no_prediction(self, samples):
+        with_invalid = GritsEvaluator(metrics=["con", "top"])
+        without_invalid = GritsEvaluator(metrics=["con", "top"])
+        with pytest.warns(UserWarning, match=_INVALID_PRED_WARNING):
+            for true_htmls, pred_htmls in samples:
+                with_invalid.eval_htmls(true_htmls, pred_htmls)
+        for true_htmls, pred_htmls in samples:
+            without_invalid.eval_htmls(true_htmls, [h for h in pred_htmls if h != _NOT_A_TABLE])
+        assert with_invalid.compute_grits() == without_invalid.compute_grits()
+        assert (
+            with_invalid.compute_mean_grits_per_sample()
+            == without_invalid.compute_mean_grits_per_sample()
+        )
+        num_invalid = sum(pred_htmls.count(_NOT_A_TABLE) for _, pred_htmls in samples)
+        counts_with, counts_without = (
+            with_invalid.compute_counts(),
+            without_invalid.compute_counts(),
+        )
+        assert counts_with["num_invalid_pred_tables"] == num_invalid
+        assert counts_with["num_pred_tables"] == counts_without["num_pred_tables"] + num_invalid
+
+    def test_eval_htmls_invalid_pred_html_exactly_matches_true_table_without_cells(self):
+        # The empty table evaluated in place of an invalid prediction is an exact match of a
+        # ground truth table with no cells; GriTS, precision, and recall are unchanged
+        with_invalid = GritsEvaluator(metrics=["con"])
+        with pytest.warns(UserWarning, match=_INVALID_PRED_WARNING):
+            with_invalid.eval_htmls(["<table></table>"], [_NOT_A_TABLE])
+        without_invalid = GritsEvaluator(metrics=["con"])
+        without_invalid.eval_htmls(["<table></table>"], [])
+        results_with, results_without = (
+            with_invalid.compute_grits(),
+            without_invalid.compute_grits(),
+        )
+        assert results_with["grits_con_grid_exact_match_accuracy"] == 1.0
+        assert results_without["grits_con_grid_exact_match_accuracy"] == 0.0
+        for key in ["grits_con", "grits_con_precision", "grits_con_recall"]:
+            assert results_with[key] == results_without[key]
+
+    def test_eval_htmls_only_first_table_in_a_string_is_used(self):
+        true_html = "<table><tr><td>A</td></tr></table>"
+        two_tables = (
+            "<div><table><tr><td>A</td></tr></table><table><tr><td>B</td></tr></table></div>"
+        )
+        evaluator = GritsEvaluator(metrics=["con"])
+        evaluator.eval_htmls([true_html], [two_tables])
+        assert evaluator.compute_counts()["num_pred_tables"] == 1
+        assert evaluator.compute_grits()["grits_con"] == 1.0
+
+    def test_compute_counts_num_invalid_pred_tables(self):
+        evaluator = GritsEvaluator(metrics=["con"])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 0
+        evaluator.eval_grids([[["A"]]], [[["A"]]])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 0
+        with pytest.warns(UserWarning, match=_INVALID_PRED_WARNING):
+            evaluator.eval_htmls([], ["not a table", "<p>x</p>"])
+            evaluator.eval_htmls([], ["not a table"])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 3
+
+    def test_eval_htmls_invalid_pred_warning(self):
+        evaluator = GritsEvaluator(metrics=["con"])
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("default")
+            for _ in range(3):
+                evaluator.eval_htmls([], [_NOT_A_TABLE])
+        # Issued once with the default filter, however many samples have invalid predictions
+        assert len(caught) == 1
+        assert issubclass(caught[0].category, UserWarning)
+        assert _INVALID_PRED_WARNING in str(caught[0].message)
+        assert caught[0].filename == __file__
+
+    def test_eval_htmls_valid_pred_no_warning(self):
+        evaluator = GritsEvaluator(metrics=["con"])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            evaluator.eval_htmls(["<table><tr><td>A</td></tr></table>"], [])
+            evaluator.eval_htmls(
+                ["<table><tr><td>A</td></tr></table>"], ["<table><tr><td>A</td></tr></table>"]
+            )
 
     def test_eval_htmls_list_perfect_score(self):
         html_a = "<table><tr><td>A</td><td>B</td></tr></table>"
@@ -936,11 +1066,9 @@ class TestGritsEvaluator:
                 ["<table><tr><td>A</td></tr></table>", "not valid<<>"],
                 ["<table><tr><td>A</td></tr></table>"],
             )
-        with pytest.raises(ValueError, match="Failed to parse pred_html"):
-            evaluator.eval_htmls(
-                ["<table><tr><td>A</td></tr></table>"],
-                ["not valid<<>"],
-            )
+        with pytest.warns(UserWarning, match=_INVALID_PRED_WARNING):
+            evaluator.eval_htmls(["<table><tr><td>A</td></tr></table>"], ["not valid<<>"])
+        assert evaluator.compute_counts()["num_invalid_pred_tables"] == 1
 
     def test_eval_htmls_loc_metric_raises(self):
         evaluator = GritsEvaluator(metrics=["con", "loc"])
