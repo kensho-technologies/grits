@@ -2,6 +2,7 @@
 import dataclasses
 import itertools
 from typing import Any, Callable
+import warnings
 
 import numpy as np
 import pylcs
@@ -980,7 +981,8 @@ class GritsEvaluator:
         num_invalid_pred_tables. Because GriTS precision and recall are computed over cells, an
         empty predicted table does not change the GriTS scores, precision, or recall; it only adds
         to the number of predicted tables. It can, however, count as an exact match of a ground
-        truth table with no cells.
+        truth table with no cells. A UserWarning is issued when this happens, so that systematic
+        problems (e.g. predictions in a format other than HTML) are not silently scored.
 
         HTML tables do not contain bounding box information, so the 'loc' metric
         cannot be evaluated with this method.
@@ -1026,6 +1028,14 @@ class GritsEvaluator:
 
         self.eval_table_cell_lists(true_cell_lists, pred_cell_lists)
         self._num_invalid_pred_tables += num_invalid_pred_tables
+        if num_invalid_pred_tables:
+            # A fixed message, so that with the default warning filter it is only shown once
+            warnings.warn(
+                "Some predicted HTML tables could not be converted and were evaluated as empty "
+                "tables; see compute_counts()['num_invalid_pred_tables'].",
+                UserWarning,
+                stacklevel=2,
+            )
 
     _GRID_CONVERSION_FUNCTIONS: dict[str, Callable[[list[TableCell]], list[list[Any]]]] = {
         "con": cell_list_to_grid_con,
