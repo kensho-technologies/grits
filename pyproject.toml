@@ -4,6 +4,9 @@ dynamic = ["version"]
 authors = [
   { name="Brandon Smock", email="brandon.smock@kensho.com" },
 ]
+maintainers = [
+  { name="Kensho Technologies", email="opensource@kensho.com" },
+]
 description = "GriTS metrics"
 readme = "README.md"
 license = "MIT"
